@@ -1,0 +1,170 @@
+name: TM CBP2025 sweep
+
+# Runs the standalone_tm benchmark on GitHub-hosted runners, to MEASURE the
+# wall-clock time of a sweep that currently takes ~149 minutes on `ku`
+# (Ryzen 7 3750H, 4C/8T, measured effective parallel speedup 3.2-3.5x).
+#
+# Trace data lives under bundles/, one directory per shard, chunked so that no
+# single file exceeds GitHub's 100 MiB push limit.
+
+on:
+  workflow_dispatch:
+    inputs:
+      shards:
+        description: "how many shards to run (Free-plan concurrency cap is 20)"
+        required: true
+        default: "20"
+      per_job_parallel:
+        description: "jobs run concurrently inside each runner (runner has 4 vCPU)"
+        required: true
+        default: "4"
+      label:
+        description: "free-text label echoed into the logs"
+        required: false
+        default: "run1"
+
+permissions:
+  contents: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # Gate: does it build on ubuntu-latest, and does it reproduce the
+  # bit-exact baseline from AGENTS.md 10.3?  If this fails, no number
+  # produced by this run is comparable to the ku baseline, so the sweep
+  # is not even started.
+  # ------------------------------------------------------------------
+  gate:
+    name: build + determinism gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs and start time
+        run: |
+          echo "START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "nproc     = $(nproc)"
+          echo "cpu       = $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
+          echo "cpu flags = $(grep -m1 flags /proc/cpuinfo | grep -o 'avx512[a-z]*' | sort -u | tr '\n' ' ')"
+          echo "mem       = $(free -g | awk '/^Mem:/{print $2}') GB"
+          echo "disk free = $(df -h . | awk 'NR==2{print $4}')"
+          echo "g++       = $(g++ --version | head -1)"
+          echo "libstdc++ = $(ldconfig -p | grep 'libstdc++.so.6 ' | awk '{print $NF}')"
+
+      - name: install build deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev
+
+      - name: build
+        run: |
+          make clean
+          time make -j"$(nproc)"
+
+      - name: determinism gate (must match AGENTS.md 10.3 bit for bit)
+        run: |
+          set -uo pipefail
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee smoke_int.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee smoke_fp.txt
+
+          echo "=================== GATE ==================="
+          grep -E "TM MPKI|TM right|TM wrong|TM accuracy" smoke_int.txt smoke_fp.txt
+
+          fail=0
+          chk() { if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2  (expected '$3')"; fail=1; fi; }
+          chk smoke_int.txt "int/ TM right 124142" "TM right: 124142"
+          chk smoke_int.txt "int/ TM wrong 4713"   "TM wrong: 4713"
+          chk smoke_int.txt "int/ TM MPKI 4.72575" "TM MPKI: 4.72575"
+          chk smoke_fp.txt  "fp/  TM right 107985" "TM right: 107985"
+          chk smoke_fp.txt  "fp/  TM wrong 3255"   "TM wrong: 3255"
+          chk smoke_fp.txt  "fp/  TM MPKI 3.26237" "TM MPKI: 3.26237"
+          echo "============================================"
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::DETERMINISM GATE FAILED - this platform does NOT reproduce the ku baseline; results are not comparable"
+            exit 1
+          fi
+          echo "GATE PASSED - bit-identical to the ku baseline"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-logs
+          path: smoke_*.txt
+          retention-days: 14
+
+  # ------------------------------------------------------------------
+  # The sweep.  One job per shard; each shard holds a single trace
+  # repeated R times (see scripts/prepare_traces.py).
+  # ------------------------------------------------------------------
+  sweep:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install build deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev
+
+      - name: build
+        run: |
+          make clean
+          make -j"$(nproc)"
+
+      - name: fetch this shard's trace bundle
+        run: |
+          set -euo pipefail
+          SHARD=$(printf '%02d' "${{ matrix.shard }}")
+          DIR="bundles/shard-$SHARD"
+          if [ ! -d "$DIR" ]; then
+            echo "shard $SHARD has no bundle (fewer shards than 20 requested) - nothing to do"
+            echo "SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "bundle contents:"; ls -lh "$DIR"
+          mkdir -p traces
+          cat "$DIR"/part-* > /tmp/shard.tar.gz
+          echo "reassembled: $(ls -lh /tmp/shard.tar.gz | awk '{print $5}')"
+          time tar -xzf /tmp/shard.tar.gz -C traces
+          find traces -name '*.gz' -printf '%p  %s bytes\n'
+
+      - name: mark start of compute
+        if: env.SKIP != '1'
+        run: echo "SWEEP_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$GITHUB_ENV"
+
+      - name: run shard
+        if: env.SKIP != '1'
+        run: |
+          set -uo pipefail
+          python3 scripts/run_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --shards-json shards.json \
+            --traces-dir traces \
+            --logs-dir logs \
+            --parallel "${{ inputs.per_job_parallel }}"
+
+      - name: report timing
+        if: always() && env.SKIP != '1'
+        run: |
+          echo "SWEEP_END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "this shard: ${{ matrix.shard }}"
+          n=$(find logs -name '*.log' 2>/dev/null | wc -l)
+          echo "log files produced: $n"
+
+      - name: upload results
+        if: always() && env.SKIP != '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}-logs
+          path: |
+            logs/
+            shard-${{ matrix.shard }}.csv
+          retention-days: 14

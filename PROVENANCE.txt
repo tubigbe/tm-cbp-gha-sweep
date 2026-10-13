@@ -1,0 +1,4 @@
+branch: standalone_tm
+commit: 474cf9d0ff56b42c75a9106c2153b2a49bd050ca
+source tree copies from: /data/tm_cbp_sim
+created: 2026-10-13T20:26:55+01:00

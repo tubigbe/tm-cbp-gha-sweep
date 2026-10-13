@@ -1,0 +1,21 @@
+# .gitignore for the sweep repo.
+#
+# IMPORTANT: unlike the main project's .gitignore, this one must NOT contain a
+# bare `*.gz`. The sample traces (determinism gate) and the shard bundles ARE
+# the payload and must be committed. Only build artefacts and run outputs are
+# ignored here.
+
+# build artefacts
+*.o
+*.a
+/cbp
+*.exe
+
+# run outputs (produced inside a runner; collected as workflow artifacts)
+logs/
+*.csv
+!shards.json
+
+# python
+__pycache__/
+*.pyc

@@ -1,0 +1,8 @@
+# Keep the shell/python/YAML sources LF so the runners never see CRLF.
+# The main project has no .gitattributes and its predictor files are CRLF,
+# which is a known trap (AGENTS.md section 9 item 13). This repo is built fresh
+# from Linux, so we pin LF and normalise on commit.
+* text=auto eol=lf
+
+*.gz   binary
+*.tar  binary
