@@ -1,0 +1,8 @@
+# trace            solo-seconds on ku  (the project's "trace-seconds" unit)
+# names must match runlist_tune.txt exactly, i.e. they carry the _trace suffix
+int_1_trace        231
+fp_4_trace         233
+web_11_trace        72
+media_3_trace      140
+compress_4_trace   208
+infra_14_trace     225

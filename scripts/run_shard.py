@@ -41,10 +41,17 @@ CSV_FIELDS = ["shard", "trace", "repeat", "seconds", "rc", "error",
 
 
 def find_trace(traces_dir, name):
-    target = f"{name}_trace.gz"
+    """Locate a trace by runlist name.
+
+    Runlist entries look like `int_1_trace` (no .gz), i.e. they already carry
+    the `_trace` suffix; but a hand-written list might use the bare `int_1`.
+    Try both, because getting this wrong silently reports every job MISSING.
+    """
+    candidates = {f"{name}.gz", f"{name}_trace.gz"}
     for root, _dirs, files in os.walk(traces_dir):
-        if target in files:
-            return os.path.join(root, target)
+        for c in candidates:
+            if c in files:
+                return os.path.join(root, c)
     return None
 
 

@@ -1,0 +1,38 @@
+{
+ "shard-00": {
+  "bytes": 98724505,
+  "member": "fp/fp_4_trace.gz",
+  "parts": 1,
+  "trace": "fp_4_trace"
+ },
+ "shard-01": {
+  "bytes": 89448719,
+  "member": "int/int_1_trace.gz",
+  "parts": 1,
+  "trace": "int_1_trace"
+ },
+ "shard-02": {
+  "bytes": 117212032,
+  "member": "infra/infra_14_trace.gz",
+  "parts": 2,
+  "trace": "infra_14_trace"
+ },
+ "shard-03": {
+  "bytes": 105666744,
+  "member": "compress/compress_4_trace.gz",
+  "parts": 2,
+  "trace": "compress_4_trace"
+ },
+ "shard-04": {
+  "bytes": 116203248,
+  "member": "media/media_3_trace.gz",
+  "parts": 2,
+  "trace": "media_3_trace"
+ },
+ "shard-05": {
+  "bytes": 44329795,
+  "member": "web/web_11_trace.gz",
+  "parts": 1,
+  "trace": "web_11_trace"
+ }
+}
