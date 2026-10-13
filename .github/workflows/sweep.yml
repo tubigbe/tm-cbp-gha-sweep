@@ -5,10 +5,7 @@ name: TM variant sweep (config per shard)
 # 结果由 collect 作业用内置 GITHUB_TOKEN 提交回仓库（commit message 带 [skip ci] 防自触发）。
 
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['results/**', 'logs/**', '*.md']
-  workflow_dispatch:
+  workflow_dispatch:   # 改成只手动触发：全集扫描由 fullset.yml 负责
 
 permissions:
   contents: write
