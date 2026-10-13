@@ -46,7 +46,7 @@ def main():
     ap.add_argument("--parallel", type=int, default=4)
     ap.add_argument("--traces-dir", default="traces")
     ap.add_argument("--logs-dir", default="logs")
-    ap.add_argument("--out-dir", default="results")
+    ap.add_argument("--out-dir", default="fullset_results")
     a = ap.parse_args()
 
     plan = json.load(open("fullsets.json"))
@@ -62,25 +62,17 @@ def main():
 
     os.makedirs(a.traces_dir, exist_ok=True)
 
-    # ---- 1) 从 Google Drive 拉这一个类别的 tar.xz ----
-    if not os.path.exists(tarball):
-        sh(f"python3 -m pip install --quiet --disable-pip-version-check gdown")
-        t0 = time.time()
-        sh(f'gdown --id "{me["gdrive_id"]}" -O "{tarball}"')
-        print(f"download {tarball}: {time.time()-t0:.0f}s  size={os.path.getsize(tarball)/2**30:.2f} GiB")
-    else:
-        print(f"{tarball} 已存在，跳过下载")
-    sh("df -h . | tail -1")
-
-    # ---- 2) 解压本分片需要的 trace ----
-    pats = []
-    for t in traces:
-        b = t[:-6] if t.endswith("_trace") else t      # 'int_5_trace' -> 'int_5'
-        pats.append(f"*{b}_trace.gz")
-    cmd = ["tar", "-xJf", tarball, "-C", a.traces_dir, "--wildcards"] + pats
+    # ---- 1) 从 Google Drive **流式**拉取并解压（不落盘 tar.xz，避免 14 GB 磁盘不够）----
+    #      不用 gdown：Ubuntu 24.04 的 python 是 externally-managed，pip install 会被 PEP 668 拒绝。
+    url = ("https://drive.usercontent.google.com/download?id=%s&export=download&confirm=t"
+           % me["gdrive_id"])
     t0 = time.time()
-    subprocess.run(cmd, check=True)
-    print(f"extract: {time.time()-t0:.0f}s")
+    cmd = ('set -o pipefail; curl -sSL --retry 3 --retry-delay 5 "%s" | tar -xJ -C %s'
+           % (url, a.traces_dir))
+    print("+ " + cmd, flush=True)
+    subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
+    print(f"drive download+extract: {time.time()-t0:.0f}s")
+    sh("df -h . | tail -1")
     found = sum(1 for t in traces if find_trace(a.traces_dir, t))
     print(f"解压后找到 {found}/{len(traces)} 条")
     if found != len(traces):

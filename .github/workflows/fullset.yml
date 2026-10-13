@@ -1,9 +1,6 @@
 name: TM full-set sweep (both FPTM configs, 105 traces)
 
-# 全集 105 条 trace × 两个 FPTM 配置。7 个分片（每类一个，int 拆两半）。
-# 每个分片自己从 Google Drive 拉它那一类的 tar.xz（共 7 次下载，不走仓库）。
-# 结果由 collect 作业提交回仓库，ku 侧 git pull 即可拿到。
-
+# 全集 105 �?trace × 两个 FPTM 配置�? 个分片（每类一个，int 拆两半）�?# 每个分片自己�?Google Drive 拉它那一类的 tar.xz（共 7 次下载，不走仓库）�?# 结果�?collect 作业提交回仓库，ku �?git pull 即可拿到�?
 on:
   push:
     branches: [main]
@@ -77,7 +74,7 @@ jobs:
         with:
           name: full-${{ matrix.shard }}
           path: |
-            results/
+            fullset_results/
             logs/
           retention-days: 14
 
