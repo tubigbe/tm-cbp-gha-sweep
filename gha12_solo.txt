@@ -1,2 +1,11 @@
 solo timings (one at a time, no contention)
 trace       seconds   TM_MPKI
+int_13         313   3.11935
+web_18           0   rc=127
+fp_0             0   rc=127
+infra_0          0   rc=127
+compress_1       0   rc=127
+media_1          0   rc=127
+
+=== known reference (from test_sets_and_protocol.md section 2.1) ===
+int_1 231 / fp_4 233 / web_11 72 / media_3 140 / compress_4 208 / infra_14 225

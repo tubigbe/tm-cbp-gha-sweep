@@ -67,8 +67,10 @@ files to `ku` without CRLF corruption. Safe to delete.
 
 ## 5. GitHub
 
-Nothing has been created on GitHub yet. When a repository is created it will be
-listed here by exact name, together with:
+A repository HAS been created: **https://github.com/tubigbe/tm-cbp-gha-sweep** (public).
+It contains the sweep scaffolding (roughly 6.4 MB) and, once generated, the
+trace bundles (roughly 1 GB). To remove the whole experiment from GitHub:
+repository Settings -> Delete this repository.
 
 - the trace bundles pushed to it (approximately 14 GB, the bulk of the size)
 - how to delete it (`Settings -> Delete this repository`) if the experiment is
