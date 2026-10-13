@@ -1,0 +1,1 @@
+folded history: 8 bits/group, L=[8, 16, 24], raw_head=0

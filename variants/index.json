@@ -1,0 +1,10 @@
+{
+ "0": "00_baseline",
+ "1": "01_fuzzy_LF4_T12",
+ "2": "02_fuzzy_LF4_T18",
+ "3": "03_fuzzy_LF8_T18",
+ "4": "04_fuzzy_LF8_T24",
+ "5": "05_fold_A",
+ "6": "06_fold_B",
+ "7": "07_fold_C"
+}

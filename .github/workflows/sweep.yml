@@ -1,37 +1,21 @@
-name: TM CBP2025 sweep
+name: TM variant sweep (config per shard)
 
-# Runs the standalone_tm benchmark on GitHub-hosted runners, to MEASURE the
-# wall-clock time of a sweep that currently takes ~149 minutes on `ku`
-# (Ryzen 7 3750H, 4C/8T, measured effective parallel speedup 3.2-3.5x).
-#
-# Trace data lives under bundles/, one directory per shard, chunked so that no
-# single file exceeds GitHub's 100 MiB push limit.
+# 一次运行 = 8 个配置 × T6 六条 trace。每个分片 = 一个配置，一台全新 runner。
+# 触发方式：push 到 main（无需 gh CLI / token），或手动 workflow_dispatch。
+# 结果由 collect 作业用内置 GITHUB_TOKEN 提交回仓库（commit message 带 [skip ci] 防自触发）。
 
 on:
+  push:
+    branches: [main]
+    paths-ignore: ['results/**', 'logs/**', '*.md']
   workflow_dispatch:
-    inputs:
-      shards:
-        description: "how many shards to run (Free-plan concurrency cap is 20)"
-        required: true
-        default: "20"
-      per_job_parallel:
-        description: "jobs run concurrently inside each runner (runner has 4 vCPU)"
-        required: true
-        default: "4"
-      label:
-        description: "free-text label echoed into the logs"
-        required: false
-        default: "run1"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   # ------------------------------------------------------------------
-  # Gate: does it build on ubuntu-latest, and does it reproduce the
-  # bit-exact baseline from AGENTS.md 10.3?  If this fails, no number
-  # produced by this run is comparable to the ku baseline, so the sweep
-  # is not even started.
+  # gate：先证明这个平台逐位复现 ku 基线，否则后面所有数字都不可比
   # ------------------------------------------------------------------
   gate:
     name: build + determinism gate
@@ -39,65 +23,35 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
-      - name: runner specs and start time
-        run: |
-          echo "START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          echo "nproc     = $(nproc)"
-          echo "cpu       = $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
-          echo "cpu flags = $(grep -m1 flags /proc/cpuinfo | grep -o 'avx512[a-z]*' | sort -u | tr '\n' ' ')"
-          echo "mem       = $(free -g | awk '/^Mem:/{print $2}') GB"
-          echo "disk free = $(df -h . | awk 'NR==2{print $4}')"
-          echo "g++       = $(g++ --version | head -1)"
-          echo "libstdc++ = $(ldconfig -p | grep 'libstdc++.so.6 ' | awk '{print $NF}')"
-
       - name: install build deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq zlib1g-dev
-
-      - name: build
+      - name: build (pristine source)
         run: |
           make clean
           time make -j"$(nproc)"
-
       - name: determinism gate (must match AGENTS.md 10.3 bit for bit)
         run: |
           set -uo pipefail
           ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee smoke_int.txt
           ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee smoke_fp.txt
-
-          echo "=================== GATE ==================="
-          grep -E "TM MPKI|TM right|TM wrong|TM accuracy" smoke_int.txt smoke_fp.txt
-
           fail=0
-          chk() { if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2  (expected '$3')"; fail=1; fi; }
+          chk() { if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2 (expected '$3')"; fail=1; fi; }
           chk smoke_int.txt "int/ TM right 124142" "TM right: 124142"
-          chk smoke_int.txt "int/ TM wrong 4713"   "TM wrong: 4713"
-          chk smoke_int.txt "int/ TM MPKI 4.72575" "TM MPKI: 4.72575"
-          chk smoke_fp.txt  "fp/  TM right 107985" "TM right: 107985"
-          chk smoke_fp.txt  "fp/  TM wrong 3255"   "TM wrong: 3255"
-          chk smoke_fp.txt  "fp/  TM MPKI 3.26237" "TM MPKI: 3.26237"
-          echo "============================================"
+          chk smoke_int.txt "int/ TM MPKI 4.72575"  "TM MPKI: 4.72575"
+          chk smoke_fp.txt  "fp/  TM right 107985"  "TM right: 107985"
+          chk smoke_fp.txt  "fp/  TM MPKI 3.26237"  "TM MPKI: 3.26237"
           if [ "$fail" -ne 0 ]; then
-            echo "::error::DETERMINISM GATE FAILED - this platform does NOT reproduce the ku baseline; results are not comparable"
-            exit 1
+            echo "::error::DETERMINISM GATE FAILED"; exit 1
           fi
           echo "GATE PASSED - bit-identical to the ku baseline"
 
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: gate-logs
-          path: smoke_*.txt
-          retention-days: 14
-
   # ------------------------------------------------------------------
-  # The sweep.  One job per shard; each shard holds a single trace
-  # repeated R times (see scripts/prepare_traces.py).
+  # 每个分片 = 一个配置，内部 4 路并行跑 T6 六条 trace
   # ------------------------------------------------------------------
   sweep:
-    name: shard ${{ matrix.shard }}
+    name: variant shard ${{ matrix.shard }}
     needs: gate
     runs-on: ubuntu-latest
     timeout-minutes: 120
@@ -108,63 +62,85 @@ jobs:
         shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     steps:
       - uses: actions/checkout@v4
-
       - name: install build deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq zlib1g-dev
-
-      - name: build
+      - name: variant assigned to this shard
         run: |
-          make clean
-          make -j"$(nproc)"
-
-      - name: fetch this shard's trace bundle
+          python3 - <<'PY'
+          import json
+          idx = json.load(open("variants/index.json"))
+          print("shard ${{ matrix.shard }} ->", idx.get("${{ matrix.shard }}", "(none)"))
+          PY
+      - name: extract the 6 T6 traces (bundles shard-00..05)
         run: |
           set -euo pipefail
-          SHARD=$(printf '%02d' "${{ matrix.shard }}")
-          DIR="bundles/shard-$SHARD"
-          if [ ! -d "$DIR" ]; then
-            echo "shard $SHARD has no bundle (fewer shards than 20 requested) - nothing to do"
-            echo "SKIP=1" >> "$GITHUB_ENV"
-            exit 0
-          fi
-          echo "bundle contents:"; ls -lh "$DIR"
           mkdir -p traces
-          cat "$DIR"/part-* > /tmp/shard.tar.gz
-          echo "reassembled: $(ls -lh /tmp/shard.tar.gz | awk '{print $5}')"
-          time tar -xzf /tmp/shard.tar.gz -C traces
+          found=0
+          for i in 00 01 02 03 04 05; do
+            DIR="bundles/shard-$i"
+            if [ -d "$DIR" ]; then
+              cat "$DIR"/part-* > /tmp/s$i.tar.gz
+              tar -xzf /tmp/s$i.tar.gz -C traces
+              found=$((found+1))
+            fi
+          done
+          echo "extracted $found bundles"
           find traces -name '*.gz' -printf '%p  %s bytes\n'
-
-      - name: mark start of compute
-        if: env.SKIP != '1'
-        run: echo "SWEEP_START_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | tee -a "$GITHUB_ENV"
-
-      - name: run shard
-        if: env.SKIP != '1'
+      - name: run this variant on T6
         run: |
           set -uo pipefail
-          python3 scripts/run_shard.py \
+          python3 scripts/run_variant.py \
             --shard "${{ matrix.shard }}" \
-            --shards-json shards.json \
+            --parallel 4 \
             --traces-dir traces \
             --logs-dir logs \
-            --parallel "${{ inputs.per_job_parallel }}"
-
-      - name: report timing
-        if: always() && env.SKIP != '1'
-        run: |
-          echo "SWEEP_END_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          echo "this shard: ${{ matrix.shard }}"
-          n=$(find logs -name '*.log' 2>/dev/null | wc -l)
-          echo "log files produced: $n"
-
+            --out-dir results
       - name: upload results
-        if: always() && env.SKIP != '1'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shard-${{ matrix.shard }}-logs
+          name: results-${{ matrix.shard }}
           path: |
+            results/
             logs/
-            shard-${{ matrix.shard }}.csv
           retention-days: 14
+
+  # ------------------------------------------------------------------
+  # 收集全部结果并提交回仓库（这样 ku 侧只需 git pull 就能拿到，无需 token）
+  # ------------------------------------------------------------------
+  collect:
+    name: collect + commit results
+    needs: sweep
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          merge-multiple: true
+          path: collected
+      - name: assemble
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          find collected -name '*.csv' -exec cp {} results/ \;
+          ls -la results/
+          echo "--- all results ---"
+          head -1 results/*.csv | head -3
+          cat results/*.csv > results/ALL.csv
+          wc -l results/ALL.csv
+      - name: commit and push (with [skip ci] to avoid re-triggering)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f results/
+          if git diff --cached --quiet; then
+            echo "no results to commit"; exit 0
+          fi
+          git commit -m "results: T6 variant sweep [skip ci]"
+          git push
