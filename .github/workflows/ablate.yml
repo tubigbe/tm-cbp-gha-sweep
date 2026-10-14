@@ -1,0 +1,183 @@
+name: TM V13 input-ablation sweep
+
+# V13 validation set (13 traces) x 3 configurations x 4 ablation modes.
+# 18 shards = 6 trace groups x 3 configurations; each shard runs NONE + P + L + B
+# inside it, 4 runs at a time.  Traces are streamed straight from Google Drive
+# (no pip/gdown: Ubuntu 24.04 python is externally managed, PEP 668).
+# Results are committed back by the collect job; `git pull` on ku fetches them.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ablatesets.json'
+      - 'scripts/run_ablate_shard.py'
+      - '.github/workflows/ablate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + determinism gate + ablation-hook gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: build pristine source
+        run: make clean && make -j"$(nproc)"
+      - name: determinism gate - TM_ABLATE unset must equal AGENTS.md 10.3
+        run: |
+          set -uo pipefail
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee s1.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee s2.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck s1.txt int-right "TM right: 124142"
+          ck s1.txt int-mpki  "TM MPKI: 4.72575"
+          ck s2.txt fp-right  "TM right: 107985"
+          ck s2.txt fp-mpki   "TM MPKI: 3.26237"
+          if [ "$fail" -ne 0 ]; then echo "::error::GATE FAILED - the ablation hook is not inert by default"; exit 1; fi
+          echo "GATE PASSED - hook present but inactive; bit-identical to the ku baseline"
+      - name: ablation gate - TM_ABLATE must actually bite
+        run: |
+          set -euo pipefail
+          for ab in P G L B; do
+            printf '  TM_ABLATE=%s  ' "$ab"
+            TM_ABLATE=$ab ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz \
+              | grep -E '^TM (accuracy|MPKI)' | tr '\n' ' '
+            echo
+          done
+          TM_ABLATE=L ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz > l.txt
+          python3 - <<'PY'
+          import re, sys
+          v = float(re.search(r"TM MPKI: ([0-9.]+)", open("l.txt").read()).group(1))
+          print("  TM_ABLATE=L sample_int MPKI =", v, " (measured on ku: 38.0146)")
+          if abs(v - 38.0146) > 0.001:
+              sys.exit("::error::ABLATION HOOK NOT ACTIVE")
+          print("  hook verified")
+          PY
+
+  ablate:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          echo "cpu = $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("ablatesets.json"))["shards"]["${{ matrix.shard }}"]
+          print("group  :", p["group"], "|", p["why"])
+          print("config :", p["cfg"], "-", p["cfg_label"])
+          print("domains:", p["domains"], "| traces:", ", ".join(p["traces"]))
+          print("est    : %ds" % p["est_shard_sec"])
+          PY
+
+      - name: run ablation shard (download + 4 modes)
+        run: |
+          set -uo pipefail
+          python3 scripts/run_ablate_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --parallel 4 \
+            --traces-dir traces \
+            --logs-dir logs \
+            --out-dir ablation_results
+
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: abl-${{ matrix.shard }}
+          path: |
+            ablation_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + aggregate + commit
+    needs: ablate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: abl-*
+          merge-multiple: true
+          path: collected
+
+      - name: assemble and aggregate
+        run: |
+          set -euo pipefail
+          mkdir -p ablation_results
+          find collected -name '*.csv' -exec cp {} ablation_results/ \;
+          ls -la ablation_results/
+          python3 - <<'PY'
+          import csv, glob, collections
+          rows = []
+          for f in sorted(glob.glob("ablation_results/shard-*.csv")):
+              with open(f) as fh:
+                  rows += list(csv.DictReader(fh))
+          print("total rows:", len(rows), "from", len(glob.glob("ablation_results/shard-*.csv")), "shards")
+          cfg_order = ["00_baseline", "02_fuzzy_LF4_T18", "04_fuzzy_LF8_T24"]
+          modes = ["NONE", "P", "L", "B"]
+          by = collections.defaultdict(list)
+          for r in rows:
+              try:
+                  mpki = float(r["TM MPKI"]); acc = float(r["TM accuracy"].rstrip("%"))
+              except Exception:
+                  continue
+              by[(r["cfg"], r["mode"])].append((r["trace"], mpki, acc))
+          lines = ["| config | mode | traces | mean MPKI | mean accuracy |",
+                   "|---|---|---:|---:|---:|"]
+          for c in cfg_order:
+              for m in modes:
+                  v = by.get((c, m), [])
+                  if not v:
+                      continue
+                  lines.append("| %s | %s | %d | %.4f | %.4f%% |" % (
+                      c, m, len(v), sum(x[1] for x in v) / len(v), sum(x[2] for x in v) / len(v)))
+          table = "\n".join(lines)
+          print(table)
+          with open("ablation_results/SUMMARY.md", "w") as fh:
+              fh.write("# V13 input-ablation - means over the traces present\n\n")
+              fh.write(table + "\n")
+          print("coverage (distinct traces per cfg/mode):", sorted({len(v) for v in by.values()}))
+          PY
+
+      - name: commit and push (skip ci to avoid re-triggering)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f ablation_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "V13 ablation results: 3 configs x 4 modes x 13 traces [skip ci]"
+          git push

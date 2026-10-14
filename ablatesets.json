@@ -1,0 +1,619 @@
+{
+ "experiment": "V13 input-group ablation x 3 configurations",
+ "generated_by": "gen_ablate_plan.py",
+ "trace_set": "runlist_validate.txt (V13, 13 traces)",
+ "configs": [
+  {
+   "id": "00_baseline",
+   "label": "baseline (S=5, T=6)"
+  },
+  {
+   "id": "02_fuzzy_LF4_T18",
+   "label": "FPTM LF=4 T=18"
+  },
+  {
+   "id": "04_fuzzy_LF8_T24",
+   "label": "FPTM LF=8 T=24"
+  }
+ ],
+ "modes": {
+  "NONE": "no ablation (control; must reproduce the published per-trace values)",
+  "P": "zero current-branch PC  bits [0,20]",
+  "L": "zero local history     bits [45,48]",
+  "B": "zero preceding-branch path history bits [49,80]"
+ },
+ "hook": "TM_ABLATE env var in tm_predictor.cc::assemble_input (see tm_bp_diagnosis.md 2.2)",
+ "shards": {
+  "0": {
+   "group": "intA",
+   "why": "int_32 is the V13 long pole (110M instr); alone in a shard",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "int_32_trace"
+   ],
+   "est_shard_sec": 878,
+   "expect": {
+    "int_32_trace": [
+     17.6676,
+     84.6199
+    ]
+   }
+  },
+  "1": {
+   "group": "intA",
+   "why": "int_32 is the V13 long pole (110M instr); alone in a shard",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "int_32_trace"
+   ],
+   "est_shard_sec": 878,
+   "expect": {
+    "int_32_trace": [
+     17.612,
+     84.6683
+    ]
+   }
+  },
+  "2": {
+   "group": "intA",
+   "why": "int_32 is the V13 long pole (110M instr); alone in a shard",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "int_32_trace"
+   ],
+   "est_shard_sec": 878,
+   "expect": {
+    "int_32_trace": [
+     17.6358,
+     84.6476
+    ]
+   }
+  },
+  "3": {
+   "group": "intB",
+   "why": "the three shorter int traces",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "int_34_trace",
+    "int_36_trace",
+    "int_13_trace"
+   ],
+   "est_shard_sec": 1067,
+   "expect": {
+    "int_34_trace": [
+     8.03206,
+     94.9644
+    ],
+    "int_36_trace": [
+     18.6284,
+     87.086
+    ],
+    "int_13_trace": [
+     3.11935,
+     97.06
+    ]
+   }
+  },
+  "4": {
+   "group": "intB",
+   "why": "the three shorter int traces",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "int_34_trace",
+    "int_36_trace",
+    "int_13_trace"
+   ],
+   "est_shard_sec": 1067,
+   "expect": {
+    "int_34_trace": [
+     9.10074,
+     94.2944
+    ],
+    "int_36_trace": [
+     17.5305,
+     87.8471
+    ],
+    "int_13_trace": [
+     3.67157,
+     96.5395
+    ]
+   }
+  },
+  "5": {
+   "group": "intB",
+   "why": "the three shorter int traces",
+   "domains": [
+    "int"
+   ],
+   "categories": {
+    "int": {
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi",
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "int_34_trace",
+    "int_36_trace",
+    "int_13_trace"
+   ],
+   "est_shard_sec": 1067,
+   "expect": {
+    "int_34_trace": [
+     8.77929,
+     94.496
+    ],
+    "int_36_trace": [
+     17.2993,
+     88.0074
+    ],
+    "int_13_trace": [
+     3.7488,
+     96.4667
+    ]
+   }
+  },
+  "6": {
+   "group": "web",
+   "why": "all three web traces",
+   "domains": [
+    "web"
+   ],
+   "categories": {
+    "web": {
+     "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf",
+     "tarball": "web.tar.xz",
+     "size_gb": 1.89
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "web_6_trace",
+    "web_13_trace",
+    "web_18_trace"
+   ],
+   "est_shard_sec": 758,
+   "expect": {
+    "web_6_trace": [
+     18.6708,
+     87.5583
+    ],
+    "web_13_trace": [
+     14.9833,
+     87.5491
+    ],
+    "web_18_trace": [
+     11.2554,
+     90.8925
+    ]
+   }
+  },
+  "7": {
+   "group": "web",
+   "why": "all three web traces",
+   "domains": [
+    "web"
+   ],
+   "categories": {
+    "web": {
+     "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf",
+     "tarball": "web.tar.xz",
+     "size_gb": 1.89
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "web_6_trace",
+    "web_13_trace",
+    "web_18_trace"
+   ],
+   "est_shard_sec": 758,
+   "expect": {
+    "web_6_trace": [
+     18.054,
+     87.9693
+    ],
+    "web_13_trace": [
+     13.7794,
+     88.5495
+    ],
+    "web_18_trace": [
+     10.351,
+     91.6243
+    ]
+   }
+  },
+  "8": {
+   "group": "web",
+   "why": "all three web traces",
+   "domains": [
+    "web"
+   ],
+   "categories": {
+    "web": {
+     "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf",
+     "tarball": "web.tar.xz",
+     "size_gb": 1.89
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "web_6_trace",
+    "web_13_trace",
+    "web_18_trace"
+   ],
+   "est_shard_sec": 758,
+   "expect": {
+    "web_6_trace": [
+     17.9747,
+     88.0222
+    ],
+    "web_13_trace": [
+     13.7484,
+     88.5753
+    ],
+    "web_18_trace": [
+     10.3059,
+     91.6609
+    ]
+   }
+  },
+  "9": {
+   "group": "infra",
+   "why": "both infra traces",
+   "domains": [
+    "infra"
+   ],
+   "categories": {
+    "infra": {
+     "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj",
+     "tarball": "infra.tar.xz",
+     "size_gb": 1.49
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "infra_0_trace",
+    "infra_12_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "infra_0_trace": [
+     8.14942,
+     93.659
+    ],
+    "infra_12_trace": [
+     21.5098,
+     86.3206
+    ]
+   }
+  },
+  "10": {
+   "group": "infra",
+   "why": "both infra traces",
+   "domains": [
+    "infra"
+   ],
+   "categories": {
+    "infra": {
+     "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj",
+     "tarball": "infra.tar.xz",
+     "size_gb": 1.49
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "infra_0_trace",
+    "infra_12_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "infra_0_trace": [
+     9.4726,
+     92.6294
+    ],
+    "infra_12_trace": [
+     19.4835,
+     87.6092
+    ]
+   }
+  },
+  "11": {
+   "group": "infra",
+   "why": "both infra traces",
+   "domains": [
+    "infra"
+   ],
+   "categories": {
+    "infra": {
+     "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj",
+     "tarball": "infra.tar.xz",
+     "size_gb": 1.49
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "infra_0_trace",
+    "infra_12_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "infra_0_trace": [
+     9.48557,
+     92.6193
+    ],
+    "infra_12_trace": [
+     19.501,
+     87.5981
+    ]
+   }
+  },
+  "12": {
+   "group": "fpmedia",
+   "why": "fp pair + the single media trace (media alone is too small to justify a shard)",
+   "domains": [
+    "fp",
+    "media"
+   ],
+   "categories": {
+    "fp": {
+     "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3",
+     "tarball": "fp.tar.xz",
+     "size_gb": 1.82
+    },
+    "media": {
+     "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n",
+     "tarball": "media.tar.xz",
+     "size_gb": 0.38
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "fp_0_trace",
+    "fp_8_trace",
+    "media_1_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "fp_0_trace": [
+     3.73496,
+     93.0827
+    ],
+    "fp_8_trace": [
+     12.3475,
+     78.7306
+    ],
+    "media_1_trace": [
+     7.37598,
+     85.9794
+    ]
+   }
+  },
+  "13": {
+   "group": "fpmedia",
+   "why": "fp pair + the single media trace (media alone is too small to justify a shard)",
+   "domains": [
+    "fp",
+    "media"
+   ],
+   "categories": {
+    "fp": {
+     "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3",
+     "tarball": "fp.tar.xz",
+     "size_gb": 1.82
+    },
+    "media": {
+     "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n",
+     "tarball": "media.tar.xz",
+     "size_gb": 0.38
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "fp_0_trace",
+    "fp_8_trace",
+    "media_1_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "fp_0_trace": [
+     3.53699,
+     93.4494
+    ],
+    "fp_8_trace": [
+     12.0917,
+     79.1712
+    ],
+    "media_1_trace": [
+     7.45003,
+     85.8387
+    ]
+   }
+  },
+  "14": {
+   "group": "fpmedia",
+   "why": "fp pair + the single media trace (media alone is too small to justify a shard)",
+   "domains": [
+    "fp",
+    "media"
+   ],
+   "categories": {
+    "fp": {
+     "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3",
+     "tarball": "fp.tar.xz",
+     "size_gb": 1.82
+    },
+    "media": {
+     "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n",
+     "tarball": "media.tar.xz",
+     "size_gb": 0.38
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "fp_0_trace",
+    "fp_8_trace",
+    "media_1_trace"
+   ],
+   "est_shard_sec": 718,
+   "expect": {
+    "fp_0_trace": [
+     3.88616,
+     92.8027
+    ],
+    "fp_8_trace": [
+     12.1075,
+     79.144
+    ],
+    "media_1_trace": [
+     7.56843,
+     85.6136
+    ]
+   }
+  },
+  "15": {
+   "group": "compress",
+   "why": "the single compress trace",
+   "domains": [
+    "compress"
+   ],
+   "categories": {
+    "compress": {
+     "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_",
+     "tarball": "compress.tar.xz",
+     "size_gb": 1.37
+    }
+   },
+   "cfg": "00_baseline",
+   "cfg_label": "baseline (S=5, T=6)",
+   "traces": [
+    "compress_1_trace"
+   ],
+   "est_shard_sec": 246,
+   "expect": {
+    "compress_1_trace": [
+     3.50769,
+     96.7429
+    ]
+   }
+  },
+  "16": {
+   "group": "compress",
+   "why": "the single compress trace",
+   "domains": [
+    "compress"
+   ],
+   "categories": {
+    "compress": {
+     "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_",
+     "tarball": "compress.tar.xz",
+     "size_gb": 1.37
+    }
+   },
+   "cfg": "02_fuzzy_LF4_T18",
+   "cfg_label": "FPTM LF=4 T=18",
+   "traces": [
+    "compress_1_trace"
+   ],
+   "est_shard_sec": 246,
+   "expect": {
+    "compress_1_trace": [
+     3.39547,
+     96.8471
+    ]
+   }
+  },
+  "17": {
+   "group": "compress",
+   "why": "the single compress trace",
+   "domains": [
+    "compress"
+   ],
+   "categories": {
+    "compress": {
+     "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_",
+     "tarball": "compress.tar.xz",
+     "size_gb": 1.37
+    }
+   },
+   "cfg": "04_fuzzy_LF8_T24",
+   "cfg_label": "FPTM LF=8 T=24",
+   "traces": [
+    "compress_1_trace"
+   ],
+   "est_shard_sec": 246,
+   "expect": {
+    "compress_1_trace": [
+     3.39433,
+     96.8481
+    ]
+   }
+  }
+ }
+}

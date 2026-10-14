@@ -40,6 +40,8 @@
  * ==========================================================================*/
 #include <iostream>
 #include <cassert>
+#include <cstdlib>
+#include <cstring>
 
 #include "tm_predictor.h"
 
@@ -131,6 +133,27 @@ void TMPredictor::assemble_input(uint64_t pc, uint8_t* tm_input) {
 
         if (wr_idx < NUM_INPUTS) {
             tm_input[wr_idx++] = prev_branch_dir[i] ? 1 : 0;
+        }
+    }
+
+    /* ---- TEMPORARY EXPERIMENT HOOK: input-group ablation (TM_ABLATE) ----
+       Zeroes a whole input group AFTER it has been assembled, so the TM
+       relearns on the remaining inputs => measures that group's marginal
+       value.  Letters (any combination):
+         P = current-branch PC   bits [ 0,20]
+         G = global history      bits [21,44]
+         L = local history       bits [45,48]
+         B = preceding branches  bits [49,80]
+       Unset (or TM_ABLATE=NONE) leaves the input untouched => the normal
+       baseline path, bit-identical to AGENTS.md 10.3.
+       Same hook as .dsh/logs/design/tm_bp_diagnosis.md section 2.2. */
+    {
+        const char *ab = std::getenv("TM_ABLATE");
+        if (ab != nullptr) {
+            if (std::strchr(ab, 'P') != nullptr) { for (int i =  0; i < 21; i++) { tm_input[i] = 0; } }
+            if (std::strchr(ab, 'G') != nullptr) { for (int i = 21; i < 45; i++) { tm_input[i] = 0; } }
+            if (std::strchr(ab, 'L') != nullptr) { for (int i = 45; i < 49; i++) { tm_input[i] = 0; } }
+            if (std::strchr(ab, 'B') != nullptr) { for (int i = 49; i < 81; i++) { tm_input[i] = 0; } }
         }
     }
 
