@@ -1,0 +1,5 @@
+shard,group,domains,cfg,mode,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+0,intA,int,00_baseline,B,int_32_trace,865.8,0,17.5407,84.7304%,10706570,1929476,34.1487,70.2726%,8.0407
+0,intA,int,00_baseline,L,int_32_trace,878.3,0,24.8975,78.3261%,9897318,2738728,34.1487,70.2726%,8.0407
+0,intA,int,00_baseline,NONE,int_32_trace,859.0,0,17.6676,84.6199%,10692613,1943433,34.1487,70.2726%,8.0407
+0,intA,int,00_baseline,P,int_32_trace,863.4,0,18.2327,84.128%,10630452,2005594,34.1487,70.2726%,8.0407

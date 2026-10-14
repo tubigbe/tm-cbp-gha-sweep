@@ -1,0 +1,9 @@
+shard,group,domains,cfg,mode,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+10,infra,infra,02_fuzzy_LF4_T18,B,infra_0_trace,543.0,0,9.6437,92.4963%,4755016,385748,19.1238,85.1199%,1.4588
+10,infra,infra,02_fuzzy_LF4_T18,B,infra_12_trace,626.7,0,19.3292,87.7074%,6895642,966460,24.7367,84.2684%,3.3935
+10,infra,infra,02_fuzzy_LF4_T18,L,infra_0_trace,603.1,0,42.2459,67.1287%,3450927,1689837,19.1238,85.1199%,1.4588
+10,infra,infra,02_fuzzy_LF4_T18,L,infra_12_trace,685.9,0,38.2226,75.6919%,5950972,1911130,24.7367,84.2684%,3.3935
+10,infra,infra,02_fuzzy_LF4_T18,NONE,infra_0_trace,547.0,0,9.4726,92.6294%,4761860,378904,19.1238,85.1199%,1.4588
+10,infra,infra,02_fuzzy_LF4_T18,NONE,infra_12_trace,703.9,0,19.4835,87.6092%,6887925,974177,24.7367,84.2684%,3.3935
+10,infra,infra,02_fuzzy_LF4_T18,P,infra_0_trace,554.9,0,9.5702,92.5535%,4757956,382808,19.1238,85.1199%,1.4588
+10,infra,infra,02_fuzzy_LF4_T18,P,infra_12_trace,712.3,0,19.6136,87.5265%,6881423,980679,24.7367,84.2684%,3.3935

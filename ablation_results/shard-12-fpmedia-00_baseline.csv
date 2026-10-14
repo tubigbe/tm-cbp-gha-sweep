@@ -1,0 +1,13 @@
+shard,group,domains,cfg,mode,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+12,fpmedia,fp+media,00_baseline,B,fp_0_trace,276.3,0,3.75853,93.0391%,1507091,112756,6.26636,88.3945%,3.2201
+12,fpmedia,fp+media,00_baseline,B,fp_8_trace,388.5,0,12.797,77.9563%,1810235,511881,15.2715,73.6938%,7.8059
+12,fpmedia,fp+media,00_baseline,B,media_1_trace,168.0,0,7.44688,85.8446%,903229,148938,10.7548,79.5569%,1.5386
+12,fpmedia,fp+media,00_baseline,L,fp_0_trace,279.7,0,4.23903,92.1492%,1492676,127171,6.26636,88.3945%,3.2201
+12,fpmedia,fp+media,00_baseline,L,fp_8_trace,496.9,0,13.201,77.2604%,1794077,528039,15.2715,73.6938%,7.8059
+12,fpmedia,fp+media,00_baseline,L,media_1_trace,227.1,0,18.3427,65.1334%,685312,366855,10.7548,79.5569%,1.5386
+12,fpmedia,fp+media,00_baseline,NONE,fp_0_trace,272.7,0,3.73496,93.0827%,1507798,112049,6.26636,88.3945%,3.2201
+12,fpmedia,fp+media,00_baseline,NONE,fp_8_trace,534.1,0,12.3475,78.7306%,1828216,493900,15.2715,73.6938%,7.8059
+12,fpmedia,fp+media,00_baseline,NONE,media_1_trace,217.7,0,7.37598,85.9794%,904647,147520,10.7548,79.5569%,1.5386
+12,fpmedia,fp+media,00_baseline,P,fp_0_trace,275.5,0,3.60793,93.318%,1511609,108238,6.26636,88.3945%,3.2201
+12,fpmedia,fp+media,00_baseline,P,fp_8_trace,535.3,0,12.6781,78.1612%,1814993,507123,15.2715,73.6938%,7.8059
+12,fpmedia,fp+media,00_baseline,P,media_1_trace,219.3,0,7.50633,85.7316%,902040,150127,10.7548,79.5569%,1.5386

@@ -1,0 +1,5 @@
+shard,group,domains,cfg,mode,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+17,compress,compress,04_fuzzy_LF8_T24,B,compress_1_trace,406.7,0,4.5551,95.7703%,3174451,140200,6.09395,94.3414%,1.7527
+17,compress,compress,04_fuzzy_LF8_T24,L,compress_1_trace,420.7,0,18.8746,82.4737%,2733716,580935,6.09395,94.3414%,1.7527
+17,compress,compress,04_fuzzy_LF8_T24,NONE,compress_1_trace,404.5,0,3.39433,96.8481%,3210178,104473,6.09395,94.3414%,1.7527
+17,compress,compress,04_fuzzy_LF8_T24,P,compress_1_trace,412.4,0,9.58864,91.0963%,3019525,295126,6.09395,94.3414%,1.7527

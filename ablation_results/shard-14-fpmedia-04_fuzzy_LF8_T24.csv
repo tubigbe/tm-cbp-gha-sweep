@@ -1,0 +1,13 @@
+shard,group,domains,cfg,mode,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,B,fp_0_trace,327.9,0,3.42073,93.6647%,1517225,102622,6.26636,88.3945%,3.2201
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,B,fp_8_trace,410.8,0,12.5964,78.3018%,1818259,503857,15.2715,73.6938%,7.8059
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,B,media_1_trace,182.3,0,7.46758,85.8053%,902815,149352,10.7548,79.5569%,1.5386
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,L,fp_0_trace,332.7,0,9.79645,81.8567%,1325953,293894,6.26636,88.3945%,3.2201
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,L,fp_8_trace,560.2,0,13.3084,77.0753%,1789778,532338,15.2715,73.6938%,7.8059
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,L,media_1_trace,270.1,0,19.8442,62.2794%,655283,396884,10.7548,79.5569%,1.5386
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,NONE,fp_0_trace,327.3,0,3.88616,92.8027%,1503262,116585,6.26636,88.3945%,3.2201
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,NONE,fp_8_trace,622.2,0,12.1075,79.144%,1837816,484300,15.2715,73.6938%,7.8059
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,NONE,media_1_trace,258.7,0,7.56843,85.6136%,900798,151369,10.7548,79.5569%,1.5386
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,P,fp_0_trace,329.2,0,3.58596,93.3587%,1512268,107579,6.26636,88.3945%,3.2201
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,P,fp_8_trace,625.7,0,12.2413,78.9135%,1832462,489654,15.2715,73.6938%,7.8059
+14,fpmedia,fp+media,04_fuzzy_LF8_T24,P,media_1_trace,257.9,0,7.51328,85.7184%,901901,150266,10.7548,79.5569%,1.5386
