@@ -1,0 +1,97 @@
+{
+ "experiment": "T6 generalisation check for the direction-B (S x S_RELAX) optimum found on web_24",
+ "variant": "dim_base",
+ "configs": [
+  [
+   5,
+   5
+  ],
+  [
+   2,
+   5
+  ],
+  [
+   3,
+   3
+  ],
+  [
+   5,
+   2
+  ]
+ ],
+ "configs_note": "(5,5)=original coupled TM; (2,5)=best on web_24; (3,3)=best on the diagonal; (5,2)=best relax-only move",
+ "shards": {
+  "0": {
+   "trace": "int_1_trace",
+   "categories": {
+    "int": {
+     "tarball": "int.tar.xz",
+     "size_gb": 4.73,
+     "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"
+    }
+   },
+   "expect_baseline": 26.091,
+   "est_shard_sec": 700
+  },
+  "1": {
+   "trace": "fp_4_trace",
+   "categories": {
+    "fp": {
+     "tarball": "fp.tar.xz",
+     "size_gb": 1.82,
+     "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"
+    }
+   },
+   "expect_baseline": 4.19113,
+   "est_shard_sec": 700
+  },
+  "2": {
+   "trace": "web_11_trace",
+   "categories": {
+    "web": {
+     "tarball": "web.tar.xz",
+     "size_gb": 1.89,
+     "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"
+    }
+   },
+   "expect_baseline": 18.1577,
+   "est_shard_sec": 700
+  },
+  "3": {
+   "trace": "media_3_trace",
+   "categories": {
+    "media": {
+     "tarball": "media.tar.xz",
+     "size_gb": 0.38,
+     "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"
+    }
+   },
+   "expect_baseline": 7.44238,
+   "est_shard_sec": 700
+  },
+  "4": {
+   "trace": "compress_4_trace",
+   "categories": {
+    "compress": {
+     "tarball": "compress.tar.xz",
+     "size_gb": 1.37,
+     "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"
+    }
+   },
+   "expect_baseline": 3.99088,
+   "est_shard_sec": 700
+  },
+  "5": {
+   "trace": "infra_14_trace",
+   "categories": {
+    "infra": {
+     "tarball": "infra.tar.xz",
+     "size_gb": 1.49,
+     "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"
+    }
+   },
+   "expect_baseline": 10.8152,
+   "est_shard_sec": 700
+  }
+ }
+}

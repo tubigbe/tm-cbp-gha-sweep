@@ -1,0 +1,169 @@
+name: T6 generalisation check (direction-B configs)
+
+# The (S, S_RELAX) optimum found on web_24 was (2,5).  web_24 is an H6 member,
+# so before that number means anything it has to survive the tuning set.
+# 6 shards = one per T6 trace (so each shard downloads only its own category);
+# every shard builds and runs all 4 configs, including the (5,5) anchor.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 't6sets.json'
+      - 'scripts/run_t6_shard.py'
+      - '.github/workflows/t6check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + determinism + inertness + wiring gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: gate 1 - pristine source reproduces AGENTS.md 10.3
+        run: |
+          set -uo pipefail
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1.txt
+          grep -qF "TM MPKI: 4.72575" g1.txt || { echo "::error::pristine baseline broken"; exit 1; }
+          echo "  OK  pristine == published baseline"
+      - name: gate 2 - dim_base at S=5,S_RELAX=5 must be bit-identical to pristine
+        run: |
+          set -euo pipefail
+          for fn in tm.h tm.cc; do cp variants/dim_base/$fn $fn; done
+          rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2.txt
+          grep -qF "TM MPKI: 4.72575" g2.txt || { echo "::error::dim_base NOT inert at S_RELAX == S"; exit 1; }
+          echo "  OK  inert at S_RELAX == S"
+      - name: gate 3 - S_RELAX must actually bite
+        run: |
+          set -euo pipefail
+          for R in 1 10; do
+            sed -i -E "s|^#define S_RELAX[ \t]+[0-9]+|#define S_RELAX $R|" tm.h
+            rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+            v=$(./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | awk '/^TM MPKI:/{print $3}')
+            echo "  S_RELAX=$R -> $v"; eval "V$R=$v"
+          done
+          if [ "$V1" = "$V10" ]; then echo "::error::S_RELAX has no effect"; exit 1; fi
+          echo "  OK  relax rate moves the result ($V1 vs $V10)"
+      - run: mkdir -p t6_results
+      - uses: actions/upload-artifact@v4
+        with: { name: gate-logs, path: g*.txt, retention-days: 7 }
+
+  t6:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0,1,2,3,4,5]
+    steps:
+      - uses: actions/checkout@v4
+      - name: runner specs
+        run: |
+          echo "cpu = $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"; nproc; free -g | head -2; df -h . | tail -2
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("t6sets.json"))["shards"]["${{ matrix.shard }}"]
+          print("trace:", p["trace"], "| anchor:", p["expect_baseline"], "| est:", p["est_shard_sec"], "s")
+          PY
+      - name: build + run shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_t6_shard.py --shard "${{ matrix.shard }}" --parallel 4 \
+            --traces-dir traces --logs-dir logs --out-dir t6_results
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: t6-${{ matrix.shard }}
+          path: |
+            t6_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + compare + commit
+    needs: t6
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: 't6-*', merge-multiple: true, path: collected }
+      - name: assemble and compare
+        run: |
+          set -euo pipefail
+          mkdir -p t6_results
+          find collected -name 'shard-*.csv' -exec cp {} t6_results/ \;
+          ls -la t6_results/
+          python3 - <<'PY'
+          import csv, glob, collections
+          rows = []
+          for f in sorted(glob.glob("t6_results/shard-*.csv")):
+              rows += list(csv.DictReader(open(f)))
+          print("total rows:", len(rows), "from", len(glob.glob("t6_results/shard-*.csv")), "shards")
+          by = collections.defaultdict(dict)
+          for r in rows:
+              try:
+                  by[(int(r["S"]), int(r["S_RELAX"]))][r["trace"]] = float(r["TM MPKI"])
+              except Exception:
+                  pass
+          traces = sorted({t for d in by.values() for t in d})
+          order = [(5,5), (2,5), (3,3), (5,2)]
+          base = by.get((5,5), {})
+          lines = ["# T6 check: does the web_24 optimum generalise?",
+                   "",
+                   "T6 tuning set, 4 configs. `(5,5)` is the original coupled TM.",
+                   "",
+                   "| trace | (5,5) BASE | (2,5) | (3,3) | (5,2) |",
+                   "|---|---:|---:|---:|---:|"]
+          for t in traces:
+              cells = []
+              for c in order:
+                  v = by.get(c, {}).get(t)
+                  cells.append("%.4f" % v if v is not None else "-")
+              lines.append("| %s | %s |" % (t, " | ".join(cells)))
+          lines.append("")
+          mean = {}
+          for c in order:
+              vals = [by[c][t] for t in traces if t in by.get(c, {})]
+              mean[c] = sum(vals) / len(vals) if vals else float("nan")
+          lines.append("| **mean** | **%.4f** | **%.4f** | **%.4f** | **%.4f** |" %
+                       (mean[(5,5)], mean[(2,5)], mean[(3,3)], mean[(5,2)]))
+          lines.append("")
+          for c in [(2,5),(3,3),(5,2)]:
+              d = 100.0 * (mean[c] - mean[(5,5)]) / mean[(5,5)]
+              n = sum(1 for t in traces if t in by.get(c,{}) and t in base and by[c][t] < base[t])
+              lines.append("- `(S=%d, S_RELAX=%d)`: mean **%+.2f%%** vs (5,5); better on %d/%d traces"
+                           % (c[0], c[1], d, n, len(traces)))
+          txt = "\n".join(lines)
+          print(txt)
+          open("t6_results/SUMMARY.md","w").write(txt + "\n")
+          PY
+      - name: commit and push
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f t6_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "T6 generalisation check: 4 direction-B configs x 6 traces [skip ci]"
+          git push
