@@ -1,0 +1,218 @@
+name: Direction-B S x S_RELAX sweep (web_24)
+
+# Decouple relax from push-out and map the (S, S_RELAX) grid: 10 x 10 = 100
+# configurations on ONE trace (web_24_trace).  20 shards x 5 configs.
+# S_RELAX == S reproduces the original TM bit-for-bit, so the diagonal of the
+# heatmap is the machine we already have, and the question is whether the
+# optimum lies off it.  Traces are streamed from Google Drive (PEP 668: no pip).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'twodimsets.json'
+      - 'scripts/run_twodim_shard.py'
+      - '.github/workflows/twodim.yml'
+      - 'variants/dim_base/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + determinism + inertness + wiring gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: gate 1 - pristine source reproduces AGENTS.md 10.3
+        run: |
+          set -uo pipefail
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1.txt
+          grep -qF "TM MPKI: 4.72575" g1.txt \
+            && echo "  OK  pristine == published baseline" \
+            || { echo "::error::pristine baseline broken"; exit 1; }
+
+      - name: gate 2 - dim_base at S=5,S_RELAX=5 must be bit-identical to pristine
+        run: |
+          set -euo pipefail
+          for fn in tm.h tm.cc; do cp variants/dim_base/$fn $fn; done
+          rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2.txt
+          grep -qF "TM MPKI: 4.72575" g2.txt \
+            && echo "  OK  decoupling is inert when S_RELAX == S" \
+            || { echo "::error::dim_base is NOT inert at S_RELAX == S"; exit 1; }
+
+      - name: gate 3 - S_RELAX must actually bite
+        run: |
+          set -euo pipefail
+          for R in 1 10; do
+            sed -i -E "s|^#define S_RELAX[ \t]+[0-9]+|#define S_RELAX $R|" tm.h
+            rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+            v=$(./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | awk '/^TM MPKI:/{print $3}')
+            echo "  S_RELAX=$R -> sample_int MPKI $v"
+            eval "V$R=$v"
+          done
+          if [ "$V1" = "$V10" ]; then
+            echo "::error::S_RELAX has no effect - the relax branch is not wired"
+            exit 1
+          fi
+          echo "  OK  relax rate moves the result ($V1 vs $V10)"
+
+      - name: stage the results dir
+        run: mkdir -p twodim_results
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gate-logs
+          path: g*.txt
+          retention-days: 7
+
+  twodim:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          echo "cpu = $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2-)"
+          nproc; free -g | head -2; df -h . | tail -2
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("twodimsets.json"))["shards"]["${{ matrix.shard }}"]
+          print("configs:", p["configs"], "| est:", p["est_shard_sec"], "s")
+          PY
+
+      - name: build + run shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_twodim_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --parallel 5 \
+            --traces-dir traces \
+            --logs-dir logs \
+            --out-dir twodim_results
+
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dim-${{ matrix.shard }}
+          path: |
+            twodim_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + heatmap + commit
+    needs: twodim
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dim-*
+          merge-multiple: true
+          path: collected
+
+      - name: assemble, build the heatmap, self-check
+        run: |
+          set -euo pipefail
+          mkdir -p twodim_results
+          find collected -name 'shard-*.csv' -exec cp {} twodim_results/ \;
+          ls -la twodim_results/
+          python3 - <<'PY'
+          import csv, glob, json
+
+          rows = []
+          for f in sorted(glob.glob("twodim_results/shard-*.csv")):
+              rows += list(csv.DictReader(open(f)))
+          print("total rows:", len(rows), "from", len(glob.glob("twodim_results/shard-*.csv")), "shards")
+
+          M = {}
+          for r in rows:
+              try:
+                  M[(int(r["S"]), int(r["S_RELAX"]))] = float(r["TM MPKI"])
+              except Exception:
+                  pass
+          Ss = sorted({k[0] for k in M})
+          Rs = sorted({k[1] for k in M})
+          print("coverage: %d cells (expect 100)" % len(M))
+
+          with open("twodim_results/heatmap.csv", "w", newline="") as fh:
+              w = csv.writer(fh)
+              w.writerow(["S_RELAX\\S"] + Ss)
+              for r in Rs:
+                  w.writerow([r] + ["%.4f" % M[(s, r)] if (s, r) in M else "" for s in Ss])
+
+          lines = ["# Direction-B sweep: relax decoupled from push-out",
+                   "",
+                   "Trace: `web_24_trace` (baseline TM MPKI 32.6486, TAGE 5.42).",
+                   "`S` sets recruitment `p_inc=(S-1)/S` and push-out `p_dec=1/S`;",
+                   "`S_RELAX` sets relax only, `p_relax=1/S_RELAX`.",
+                   "**The diagonal `S_RELAX == S` is the original TM** (the (5,5) cell must read 32.6486).",
+                   "",
+                   "TM MPKI, rows = S_RELAX, columns = S:",
+                   "",
+                   "| S_RELAX \\ S | " + " | ".join(str(s) for s in Ss) + " |",
+                   "|" + "---|" * (len(Ss) + 1)]
+          for r in Rs:
+              cells = ["**%.4f**" % M[(s, r)] if (s, r) in M and s == r
+                       else ("%.4f" % M[(s, r)] if (s, r) in M else "-") for s in Ss]
+              lines.append("| **%d** | " % r + " | ".join(cells) + " |")
+          lines.append("")
+
+          if (5, 5) in M:
+              lines.append("Anchor (5,5) = %.4f (expected 32.6486)" % M[(5, 5)])
+          if M:
+              (bs, br), bv = min(M.items(), key=lambda kv: kv[1])
+              lines.append("")
+              lines.append("**Best cell: S=%d, S_RELAX=%d -> MPKI %.4f**" % (bs, br, bv))
+              if (5, 5) in M:
+                  d = 100.0 * (bv - M[(5, 5)]) / M[(5, 5)]
+                  lines.append("vs the original TM (5,5) = %.4f: **%+.2f%%**" % (M[(5, 5)], d))
+              lines.append("On the diagonal: %s" % ("YES - the original coupled setting is already optimal"
+                                                    if bs == br else
+                                                    "NO - the optimum is off the diagonal, so decoupling does matter"))
+              lines.append("")
+              lines.append("Caveat: one trace only. MPKI is criterion 1; criterion 2 is whether the")
+              lines.append("global-history share in the TA states moves with it (see tm_bp_diagnosis 16.2).")
+          open("twodim_results/SUMMARY.md", "w").write("\n".join(lines) + "\n")
+          print("\n".join(lines))
+          PY
+
+      - name: commit and push (skip ci to avoid re-triggering)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f twodim_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "direction-B S x S_RELAX sweep: 100 cells on web_24 [skip ci]"
+          git push

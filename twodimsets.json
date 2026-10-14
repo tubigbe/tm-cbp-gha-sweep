@@ -1,0 +1,526 @@
+{
+ "experiment": "direction B: decouple relax from push-out (S x S_RELAX grid)",
+ "trace": "web_24_trace",
+ "why_this_trace": "TM MPKI 32.6486 (2nd worst of 105) while TAGE 5.42 -> maximum headroom; 15M instr -> cheap; H6 member",
+ "variant": "dim_base",
+ "semantics": {
+  "S": "controls recruitment p_inc=(S-1)/S and push-out p_dec=1/S",
+  "S_RELAX": "controls relax only, p_relax=1/S_RELAX (branch 3: clause did not fire)",
+  "S_RELAX_equals_S": "reproduces the original TM bit-for-bit"
+ },
+ "anchor": {
+  "S": 5,
+  "S_RELAX": 5,
+  "TM MPKI": 32.6486,
+  "TM accuracy": "75.3397%",
+  "measured_on": "ku, 2026-10-14, isolated run 269s (contended)"
+ },
+ "category": {
+  "dom": "web",
+  "tarball": "web.tar.xz",
+  "size_gb": 1.89,
+  "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"
+ },
+ "shards": {
+  "0": {
+   "configs": [
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     1,
+     4
+    ],
+    [
+     1,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "1": {
+   "configs": [
+    [
+     1,
+     6
+    ],
+    [
+     1,
+     7
+    ],
+    [
+     1,
+     8
+    ],
+    [
+     1,
+     9
+    ],
+    [
+     1,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "2": {
+   "configs": [
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     2,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "3": {
+   "configs": [
+    [
+     2,
+     6
+    ],
+    [
+     2,
+     7
+    ],
+    [
+     2,
+     8
+    ],
+    [
+     2,
+     9
+    ],
+    [
+     2,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "4": {
+   "configs": [
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "5": {
+   "configs": [
+    [
+     3,
+     6
+    ],
+    [
+     3,
+     7
+    ],
+    [
+     3,
+     8
+    ],
+    [
+     3,
+     9
+    ],
+    [
+     3,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "6": {
+   "configs": [
+    [
+     4,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     4,
+     4
+    ],
+    [
+     4,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "7": {
+   "configs": [
+    [
+     4,
+     6
+    ],
+    [
+     4,
+     7
+    ],
+    [
+     4,
+     8
+    ],
+    [
+     4,
+     9
+    ],
+    [
+     4,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "8": {
+   "configs": [
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     5,
+     3
+    ],
+    [
+     5,
+     4
+    ],
+    [
+     5,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "9": {
+   "configs": [
+    [
+     5,
+     6
+    ],
+    [
+     5,
+     7
+    ],
+    [
+     5,
+     8
+    ],
+    [
+     5,
+     9
+    ],
+    [
+     5,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "10": {
+   "configs": [
+    [
+     6,
+     1
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     6,
+     3
+    ],
+    [
+     6,
+     4
+    ],
+    [
+     6,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "11": {
+   "configs": [
+    [
+     6,
+     6
+    ],
+    [
+     6,
+     7
+    ],
+    [
+     6,
+     8
+    ],
+    [
+     6,
+     9
+    ],
+    [
+     6,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "12": {
+   "configs": [
+    [
+     7,
+     1
+    ],
+    [
+     7,
+     2
+    ],
+    [
+     7,
+     3
+    ],
+    [
+     7,
+     4
+    ],
+    [
+     7,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "13": {
+   "configs": [
+    [
+     7,
+     6
+    ],
+    [
+     7,
+     7
+    ],
+    [
+     7,
+     8
+    ],
+    [
+     7,
+     9
+    ],
+    [
+     7,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "14": {
+   "configs": [
+    [
+     8,
+     1
+    ],
+    [
+     8,
+     2
+    ],
+    [
+     8,
+     3
+    ],
+    [
+     8,
+     4
+    ],
+    [
+     8,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "15": {
+   "configs": [
+    [
+     8,
+     6
+    ],
+    [
+     8,
+     7
+    ],
+    [
+     8,
+     8
+    ],
+    [
+     8,
+     9
+    ],
+    [
+     8,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "16": {
+   "configs": [
+    [
+     9,
+     1
+    ],
+    [
+     9,
+     2
+    ],
+    [
+     9,
+     3
+    ],
+    [
+     9,
+     4
+    ],
+    [
+     9,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "17": {
+   "configs": [
+    [
+     9,
+     6
+    ],
+    [
+     9,
+     7
+    ],
+    [
+     9,
+     8
+    ],
+    [
+     9,
+     9
+    ],
+    [
+     9,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "18": {
+   "configs": [
+    [
+     10,
+     1
+    ],
+    [
+     10,
+     2
+    ],
+    [
+     10,
+     3
+    ],
+    [
+     10,
+     4
+    ],
+    [
+     10,
+     5
+    ]
+   ],
+   "est_shard_sec": 500
+  },
+  "19": {
+   "configs": [
+    [
+     10,
+     6
+    ],
+    [
+     10,
+     7
+    ],
+    [
+     10,
+     8
+    ],
+    [
+     10,
+     9
+    ],
+    [
+     10,
+     10
+    ]
+   ],
+   "est_shard_sec": 500
+  }
+ }
+}
