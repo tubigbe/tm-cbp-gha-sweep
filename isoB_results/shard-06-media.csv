@@ -1,0 +1,5 @@
+variant,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI
+isoB_49in_53cl,media_0_trace,249.2,0,6.88028,87.7687%,987428,137606,10.7165,80.949%,1.5941
+isoB_49in_53cl,media_1_trace,246.7,0,7.05818,86.5835%,911003,141164,10.7548,79.5569%,1.5386
+isoB_49in_53cl,media_2_trace,272.5,0,1.7624,94.8338%,647038,35248,3.76944,88.9505%,0.5817
+isoB_49in_53cl,media_3_trace,249.2,0,7.10793,87.4241%,988247,142159,11.6411,79.4037%,1.8084
