@@ -1,0 +1,170 @@
+name: TM full-set iso-area B (49 in / 53 clauses / T=10)
+
+# ONE configuration over the full 105-trace set:
+#   variants/isoB_49in_53cl  =  NUM_INPUTS 49, TM_PATH_BRANCHES 0, NUM_CLAUSES 53,
+#                               THRESHOLD 10 (alpha = 10/26.5 = 0.377 ~ the author's 0.375),
+#                               plus the std::array<T,0> padding fix in tm_predictor.h.
+# Same 7-shard category split as the FPTM full-set sweep; each shard streams its
+# category tarball straight from Google Drive into tar (never written to disk).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fullsets_isoB.json'
+      - 'scripts/run_fullset_cfg.py'
+      - 'variants/isoB_49in_53cl/**'
+      - '.github/workflows/fullset_isoB.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + two determinism gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: assert the committed tree really is the 81/32/T6 baseline
+        run: |
+          set -euo pipefail
+          grep -qE '^#define NUM_INPUTS 81' tm.h
+          grep -qE '^#define NUM_CLAUSES 32' tm.h
+          grep -qE '^#define THRESHOLD 6' tm.h
+          grep -qE '^#define TM_PATH_BRANCHES 4' tm.h
+          echo "committed tree = A baseline (81 in / 32 cl / T=6 / 4 path branches)"
+
+      - name: gate 1 - pristine build, must equal AGENTS.md 10.3
+        run: |
+          set -uo pipefail
+          make clean && make -j"$(nproc)"
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g1b.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck g1a.txt A-int-right "TM right: 124142"
+          ck g1a.txt A-int-mpki  "TM MPKI: 4.72575"
+          ck g1a.txt A-int-acc   "TM accuracy: 96.3424%"
+          ck g1b.txt A-fp-right  "TM right: 107985"
+          ck g1b.txt A-fp-mpki   "TM MPKI: 3.26237"
+          if [ "$fail" -ne 0 ]; then echo "::error::GATE 1 FAILED"; exit 1; fi
+          echo "GATE 1 PASSED - platform reproduces the ku baseline bit-for-bit"
+
+      - name: gate 2 - iso-area B build, must equal its own ku smoke values
+        run: |
+          set -uo pipefail
+          cp variants/isoB_49in_53cl/*.h variants/isoB_49in_53cl/*.cc .
+          grep -E '^#define (NUM_INPUTS|NUM_CLAUSES|THRESHOLD|TM_PATH_BRANCHES)' tm.h
+          make clean && make -j"$(nproc)"
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g2b.txt
+          grep -qF "TM initialised with size 5194 bytes" g2a.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck g2a.txt B-int-size  "TM initialised with size 5194 bytes"
+          ck g2a.txt B-int-right "TM right: 124640"
+          ck g2a.txt B-int-mpki  "TM MPKI: 4.22641"
+          ck g2a.txt B-int-acc   "TM accuracy: 96.7289%"
+          ck g2b.txt B-fp-right  "TM right: 108032"
+          ck g2b.txt B-fp-mpki   "TM MPKI: 3.21526"
+          ck g2b.txt B-fp-acc    "TM accuracy: 97.1161%"
+          if [ "$fail" -ne 0 ]; then echo "::error::GATE 2 FAILED"; exit 1; fi
+          echo "GATE 2 PASSED - the iso-area B variant is bit-identical on the runner"
+
+  fullset:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("fullsets_isoB.json"))["${{ matrix.shard }}"]
+          print("category :", p["category"])
+          print("traces   :", len(p["traces"]))
+          print("gdrive   :", p["gdrive_id"], "~%.2f GB" % p["size_gb"])
+          print(", ".join(p["traces"]))
+          PY
+
+      - name: run full-set shard (iso-area B)
+        run: |
+          set -uo pipefail
+          python3 scripts/run_fullset_cfg.py \
+            --shard "${{ matrix.shard }}" \
+            --configs isoB_49in_53cl \
+            --plan fullsets_isoB.json \
+            --parallel 4 \
+            --traces-dir traces \
+            --logs-dir logs \
+            --out-dir isoB_results
+
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isoB-${{ matrix.shard }}
+          path: |
+            isoB_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + commit results
+    needs: fullset
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: isoB-*
+          merge-multiple: true
+          path: collected
+
+      - name: assemble
+        run: |
+          set -euo pipefail
+          mkdir -p isoB_results
+          find collected -name '*.csv' -exec cp {} isoB_results/ \;
+          ls -la isoB_results/
+          cat isoB_results/shard-*.csv > isoB_results/ALL.csv
+          wc -l isoB_results/ALL.csv
+
+      - name: commit and push (skip ci to avoid re-triggering)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f isoB_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "iso-area B full-set results: 49 in / 53 clauses x 105 traces [skip ci]"
+          git push

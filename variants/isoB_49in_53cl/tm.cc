@@ -1,0 +1,500 @@
+/* ============================================================================
+ * tm.cc -- the core of the Tsetlin Machine (TM): inference + online training
+ *
+ * ── Where this file sits in the project ─────────────────────────────────────
+ *   simulator lib/uarchsim.cc
+ *     └─ cond_branch_predictor_interface.cc   ← the 10 frozen CBP2025 callbacks
+ *          ├─ cbp2016_tage_sc_l_8kb.h   the 8.22KB TAGE-SC-L ← **only its prediction is returned to the simulator**
+ *          ├─ gshare_predictor.cc       the 8KB GShare       ← counted only, not part of the output
+ *          └─ tm_predictor.cc           ← the user of this file
+ *               ├─ assemble_input()   packs PC / history into the 81-bit input vector
+ *               ├─ tm_predict()       ← this file: pure inference
+ *               └─ tm_update()        ← this file: one training step per resolved branch
+ *   So: **the TM's prediction on this branch does not affect the simulator's
+ *   MPKI**; its MPKI is counted and printed by tm_predictor.cc itself
+ *   (`TM MPKI`). See AGENTS.md §9, item 2.
+ *
+ * ── What the TM is (branch prediction as a Boolean function) ────────────────
+ *   Input: NUM_INPUTS = 81 Boolean bits x[0..80] (layout in "input vector
+ *   layout" below).
+ *   Every x[i] gives rise to two "literals":
+ *       x[i]      → positive literal  x_i
+ *       NOT x[i]  → negated literal   ¬x_i
+ *   The whole machine has NUM_INPUTS*2 = 162 literals.
+ *
+ *   The machine is made of NUM_CLAUSES = 32 clauses.
+ *   Each clause is an "AND term": it takes the logical AND of the literals it
+ *   **includes**.
+ *   Which literals a clause includes is not stored as a Boolean directly, but
+ *   represented indirectly by **automaton states**:
+ *       automata[clause][literal] ∈ [1, 2*NUM_STATES]      (uint8_t)
+ *           state >  NUM_STATES  ⇔  this literal "is included" in this clause
+ *           state <= NUM_STATES  ⇔  this literal "is not included"
+ *   So NUM_STATES is the **threshold** between included and not included, and the
+ *   distance from that threshold is the hysteresis margin -- this is exactly the
+ *   Tsetlin Automaton: a 1-bit up/down counter with memory.
+ *
+ *   A clause's half is decided by its **index** (there is no separate polarity
+ *   field):
+ *       clause  0 .. 15  → positive clause, votes "taken"
+ *       clause 16 .. 31  → negative clause, votes "not taken"
+ *
+ *   Final prediction (tm_predict):
+ *       vote = (number of firing positive clauses) − (number of firing negative clauses)
+ *       vote >= 0  →  predict taken
+ *   vote ∈ [−16, +16], and together with THRESHOLD = 6 it decides "whether to learn".
+ *
+ * ── Training (the hardest part to follow) ───────────────────────────────────
+ *   Training is **fully online**: every resolved conditional branch updates the
+ *   machine once, with that single sample; no batching, no replay, no gradients.
+ *   tm_predictor.cc keeps an "81-bit input snapshot from the moment of prediction"
+ *   for every in-flight branch, and trains on that snapshot when the branch
+ *   resolves -- so the input seen in training is **exactly** the input seen at
+ *   prediction time (this is the biggest difference from ordinary machine
+ *   learning).
+ *
+ *   One update has two steps:
+ *     Step 1, tm_update: first compute "whether to learn" this round, with
+ *        probability p = (T − y·vote)/(2T)
+ *         · confident and right (y·vote = +T) → p = 0   → this round **no clause moves**
+ *           (learning frozen)
+ *         · confidently wrong (y·vote = −T)   → p = 1   → every clause gets feedback
+ *         · undecided (vote = 0)              → p = 0.5
+ *         · each clause then rolls its own die `rand_01() <= p` before it really updates
+ *     Step 2, tm_fb_type1 / tm_fb_type2: give one of two feedbacks according to
+ *        "clause polarity x true direction"
+ *         · Type I  (tm_fb_type1) → strengthening/shaping, a probabilistic ±1 random walk
+ *         · Type II (tm_fb_type2) → "kill" a clause that voted wrong, deterministic +1
+ *
+ * ── Measured conclusions (not bugs in this file; this is how the configuration
+ *    behaves -- know them before reading the code) ────────────────────────────
+ *   Details in .dsh/logs/design/tm_bp_diagnosis.md. The two most important:
+ *     1. Branch ③ of tm_fb_type1 (clause did not fire → all literals −1, i.e.
+ *        relax) pins the clause's **firing frequency** near
+ *        q* = p_dec/(p_inc+p_dec) = 1/S. With S = 5, q* = 20%, so one clause can
+ *        carry at most ~log2(5) ≈ 2.3 independent binary conditions.
+ *        ⇒ **a rare long-global-history conjunction is torn apart by relax as soon
+ *        as it forms.**
+ *        Measured: removing the 24-bit global history actually improves MPKI by
+ *        2.0% on int_0.
+ *     2. In step 1, p → 0 while the machine is confident, so the TM **freezes too
+ *        early** on a "good enough" solution made of PC bits + 4-bit local history,
+ *        and never explores long history again.
+ *   (Both are **derivation + measurement**, not guesses read out of comments.)
+ * ==========================================================================*/
+
+#include <random>
+#include <fstream>
+#include <iostream>
+#include "tm.h"
+
+/* ── Input vector layout (must correspond bit by bit with
+ *    tm_predictor.cc::assemble_input()) ───────────────────────────────────────
+ *   [ 0 .. 20]  21 bits  PC bits [2..22]                -- the current branch's own address
+ *   [21 .. 44]  24 bits  global branch direction history g_hist -- directions of the last 24 resolved branches
+ *   [45 .. 48]   4 bits  local direction history of the current PC (1024-entry table) -- the PC's last 4 directions
+ *   [49 .. 80]  32 bits  4 "preceding branches", each = 7 bits PC[2..8] + 1 direction bit
+ *   ---------------------------------------------------------------------------
+ *   21 + 24 + 4 + 0*(7+1) = 49 = NUM_INPUTS  (preceding-branch group removed in this variant)
+ *   A static_assert in tm_predictor.cc guards this sum; changing the input
+ *   configuration in tm.h means changing both places.
+ *
+ *   ⚠️ PC starts at bit 2 because the simulator assumes instruction alignment, so
+ *      bits 0/1 are always 0.
+ */
+#ifdef DUMP_STATE_CSV
+    /* TM_INPUT_NAMES is only a **column-label** table for the CSV dump; it has
+       **no effect at all** on prediction or training. Its only purpose is to make
+       the header printed by tm_dump_states_csv() readable (pc12 / not_gh7 /
+       b2_dir ...).
+       ⚠️ It is **maintained by hand**: whenever the input configuration in tm.h
+          changes, this array must change with it, otherwise the static_assert
+          below fails at compile time (deliberately, to stop the header from
+          drifting away from the real inputs).*/
+    // TM input data labels for TA state dump - must be manually modifed if input is changed
+    static const char* TM_INPUT_NAMES[] = {
+        // pc
+        "pc2", "pc3", "pc4", "pc5", "pc6", "pc7", "pc8",
+        "pc9", "pc10", "pc11", "pc12", "pc13", "pc14",
+        "pc15", "pc16", "pc17", "pc18", "pc19", "pc20",
+        "pc21", "pc22",
+
+        // global history
+        "gh0", "gh1", "gh2", "gh3", "gh4", "gh5",
+        "gh6", "gh7", "gh8", "gh9", "gh10", "gh11",
+        "gh12", "gh13", "gh14", "gh15", "gh16", "gh17",
+        "gh18", "gh19", "gh20", "gh21", "gh22", "gh23",
+
+        // local history
+        "lh0", "lh1", "lh2", "lh3"
+    };
+
+    static_assert(sizeof(TM_INPUT_NAMES) / sizeof(TM_INPUT_NAMES[0]) == NUM_INPUTS, "TM_INPUT_NAMES needs exactly NUM_INPUTS names");
+#endif
+
+/* ⚠️ This RNG is one of the most important pieces of "implicit state" in the
+   project.
+   1) Fixed seed 1 + std::mt19937 ⇒ **completely deterministic** on the same
+      platform with the same libstdc++: the results of the 105 traces match the
+      original author bit for bit (AGENTS.md §10.2), so "a result that deviates from
+      the baseline" must come from a code change, not from noise. This is the core
+      asset of the project.
+   2) But it is stateful: the **number and order** of rand_01() calls during
+      training determine every later random number. So be careful:
+        · tm_fb_type2 is **deterministic** and never calls rand_01();
+        · tm_fb_type1 calls it once per literal, over 162 literals (two rolls per input);
+        · tm_update calls it once per clause, over 32 clauses, as a gate.
+      Any "harmless-looking" refactor (changing loop order, returning early, moving
+      one sampling call) changes the whole random sequence → all results change.
+      A/B experiments must lock the code version with a commit. */
+// deterministic "random" function
+static inline double rand_01(void) {
+    static std::mt19937 rng(1u);
+    static std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+    return dist(rng);
+}
+
+/* State clamping for the Tsetlin Automaton. The state is an integer counter with
+   physical range [1, 2*NUM_STATES]:
+     · the lower bound is 1, not 0: once a state drops to 0 the automaton is "dead"
+       and can never come back, so it is clamped at 1;
+     · the upper bound 2*NUM_STATES (= 200): clamping stops the "include" decision
+       from hardening forever.
+   Note NUM_STATES (= 100) is both the **inclusion threshold** and **half the
+   range** -- one constant with two uses. */
+static inline uint8_t clamp_state(int val) {
+    if (val < 1) return 1; 
+    if (val > (2 * NUM_STATES)) return (uint8_t)(2 * NUM_STATES);
+    
+    return (uint8_t)val;
+}
+
+/* Initialisation: write all 32x162 states as NUM_STATES (= the inclusion
+   threshold itself).
+   Because the criterion for "included" is `state > NUM_STATES` (strictly
+   greater), initially **no literal is included** ⇒ all 32 clauses are "empty
+   clauses".
+   The behaviour of an empty clause is handled specially in tm_eval_clause, and is
+   the most notable asymmetry in this file (see below).*/
+void tm_init(tm_t *tm) {
+    for (int clause_idx = 0; clause_idx < NUM_CLAUSES; clause_idx++) {
+        for (int i = 0; i < NUM_INPUTS * 2; i++) {
+            tm->automata[clause_idx][i] = (uint8_t)NUM_STATES;
+        }
+    }
+
+    printf("TM initialised with size %zu bytes (%.2f Kbytes)\n", sizeof(tm_t), (double)sizeof(tm_t) / double(1024));
+}
+
+/* Boolean output of one clause: do all the literals it **includes** hold on the
+   current input (logical AND)?
+
+   Literal numbering rule (consistent throughout the file -- do remember it):
+       automata[clause][i]                = positive literal x_i   (requires input_literals[i] == 1)
+       automata[clause][i + NUM_INPUTS]   = negated literal ¬x_i  (requires input_literals[i] == 0)
+
+   Two special cases / an asymmetry, the most important thing to understand in this
+   code:
+   1) As soon as one "included" literal is false on the current input → return false
+      immediately (short circuit, saves time).
+   2) has_included_literal records "does this clause include at least one literal":
+      · predict = true (inference path, called by tm_vote) → an empty clause returns
+        false ⇒ an empty clause **does not vote**;
+      · predict = false (training path, called by tm_update) → an empty clause
+        returns true ⇒ an empty clause **counts as firing**, so it receives Type I
+        feedback and gets literals "recruited" -- this is the mechanism by which a
+        clause grows out of nothing.
+      ⚠️ Whether this asymmetry is intentional or historical is **unconfirmed**: in
+        the Granmo reference implementation and in the practice project an empty
+        clause is **always true** on both paths (it votes in both). See AGENTS.md
+        §15.2, item 3. */
+static inline bool tm_eval_clause(const tm_t *tm, int clause_idx, const uint8_t *input_literals, bool predict) {
+    bool has_included_literal = false;
+
+    for (int i = 0; i < NUM_INPUTS; i++) {
+        bool include_literal = (tm->automata[clause_idx][i] > NUM_STATES);
+        bool include_literal_neg = (tm->automata[clause_idx][i + NUM_INPUTS] > NUM_STATES);
+
+        if (include_literal || include_literal_neg) {
+            has_included_literal = true;
+        }
+
+        if ((include_literal && input_literals[i] == 0) ||
+            (include_literal_neg && input_literals[i] == 1)) {
+            return false;
+        }
+    }
+
+    if (predict && !has_included_literal) {
+        return false;
+    }
+
+    return true;
+}
+
+/* Sum the votes of all clauses.
+   The first half (0..15) are positive clauses: +1 when they fire; the second half
+   (16..31) are negative clauses: −1 when they fire.
+   Evaluation here uses predict = true ⇒ empty clauses do not vote.
+   ⚠️ The return value is **not** clamped to ±THRESHOLD; clamping happens in
+      tm_update when p is computed (see there). */
+int tm_vote(const tm_t *tm, const uint8_t *input_literals) {
+    int sum = 0;
+
+    for (int clause_idx = 0; clause_idx < NUM_CLAUSES; clause_idx++) {
+        int clause_output = tm_eval_clause(tm, clause_idx, input_literals, true);
+
+        if (clause_idx < (NUM_CLAUSES / 2)) {
+            sum += clause_output;
+        } else {
+            sum -= clause_output;
+        }
+    }
+
+    return sum;
+}
+
+/* Final prediction: vote >= 0 ⇒ predict taken.
+   Note that vote == 0 also means taken ⇒ **the machine's default prediction is
+   "jump"**: at initialisation all clauses are empty and vote is always 0, so on a
+   cold start it always predicts taken. */
+int tm_predict(const tm_t *tm, const uint8_t *input_literals) {
+    return (tm_vote(tm, input_literals) >= 0);
+}
+
+/* ============================== Type I feedback ============================
+   Role: **shaping / strengthening**. A probabilistic ±1 random walk lets clauses
+   gradually grow into "patterns that match".
+   Three branches (clause_eval_true = does this clause fire on the current sample):
+     ① clause fires and this literal is true in the sample → state +1 (probability p_inc)
+        meaning: this literal is "right", push it towards "included" (recruitment).
+     ② clause fires and this literal is false in the sample → state −1 (probability p_dec)
+        meaning: push out. "This literal does not belong here", push towards "not included".
+     ③ clause **did not fire** → **all** literals of that clause get −1 (probability p_dec)
+        meaning: relax. "This clause as a whole no longer matches; loosen it and
+        break it up a little."
+
+   Key structure: ①② are inside the clause_eval_true branch and ③ is in the else,
+   so **only a firing clause has a chance to recruit new literals (+1); as soon as
+   it stops firing it can only be broken up as a whole (−1).**
+   This is the origin of point 1 in "measured conclusions" above: a rare
+   (long-history) clause almost always takes branch ③, and the literals it just grew
+   are torn off immediately; the steady-state firing frequency is
+   ≈ p_dec/(p_inc+p_dec) = 1/S.
+
+   The probabilities come from S in tm.h (=5): p_inc = (S−1)/S = 0.8, p_dec = 1/S = 0.2.
+   ⇒ S sets both the "reward strength" and the "punishment strength"; the two are
+   **complementary and cannot be tuned independently** (a coupling in the design).
+
+   ⚠️ Inner loop j: j=0 handles the positive literal (state_idx = i), j=1 handles
+      the negated literal (state_idx = i + NUM_INPUTS). The loop order is i outer,
+      j inner ⇒ two dice rolls per input, so RNG consumption is large.
+   ========================================================================= */
+static void tm_fb_type1(tm_t *tm, int clause_idx, const uint8_t *input_literals, bool clause_eval_true) {
+    double p_inc = (S - 1.0) / S;
+    double p_dec = 1.0 / S;
+
+    for (int i = 0; i < NUM_INPUTS; i++) {
+        for (int j = 0; j < 2; j++) {
+            bool literal_val = (j == 0) ? (input_literals[i] == 1) : (input_literals[i] == 0);
+            int state_idx = (j == 0) ? i : i + NUM_INPUTS;
+
+            if (clause_eval_true) {
+                if (literal_val) {
+                    if (rand_01() < p_inc) {
+                        tm->automata[clause_idx][state_idx] =
+                            clamp_state((int)tm->automata[clause_idx][state_idx] + 1);
+                    }
+                } else {
+                    if (rand_01() < p_dec) {
+                        tm->automata[clause_idx][state_idx] =
+                            clamp_state((int)tm->automata[clause_idx][state_idx] - 1);
+                    }
+                }
+            } else {
+                if (rand_01() < p_dec) {
+                    tm->automata[clause_idx][state_idx] =
+                        clamp_state((int)tm->automata[clause_idx][state_idx] - 1);
+                }
+            }
+        }
+    }
+}
+
+/* ============================== Type II feedback ===========================
+   Role: **specifically kill a clause that fired wrongly**. The method is direct:
+   push into this clause a literal that is **false on the current sample** -- then
+   the next time the same input appears, the clause will not fire.
+
+   Three implementation points worth noting:
+   1) It runs only when clause_eval_true holds (a clause that did not fire returns
+      immediately). A clause that did not fire does not need killing.
+   2) It is **deterministic** +1: no rand_01(), no probability parameter. Contrast
+      with the probabilistic Type I.
+   3) It only adds +1 to literals with `state <= NUM_STATES` (i.e. **not yet
+      included**); already-included literals are left alone, otherwise the
+      suppression literal already in effect would be pushed too far.
+
+   Division of labour between Type I and Type II (tm_update decides who gets which):
+       Type I  → the half of the clauses that "voted right", keep strengthening them;
+       Type II → the half that "voted wrong", suppress their error.
+   ========================================================================= */
+static void tm_fb_type2(tm_t *tm, int clause_idx, const uint8_t *input_literals, bool clause_eval_true) {
+    if (!clause_eval_true) return;
+
+    for (int i = 0; i < NUM_INPUTS; i++) {
+        int pos_idx = i;
+        int neg_idx = i + NUM_INPUTS;
+
+        bool pos_literal_false = (input_literals[i] == 0);
+        bool neg_literal_false = (input_literals[i] == 1);
+
+        if (pos_literal_false && tm->automata[clause_idx][pos_idx] <= NUM_STATES) {
+            tm->automata[clause_idx][pos_idx] =
+                clamp_state((int)tm->automata[clause_idx][pos_idx] + 1);
+        }
+
+        if (neg_literal_false && tm->automata[clause_idx][neg_idx] <= NUM_STATES) {
+            tm->automata[clause_idx][neg_idx] =
+                clamp_state((int)tm->automata[clause_idx][neg_idx] + 1);
+        }
+    }
+}
+
+/* ============================= One online training step ====================
+   Inputs: input_literals -- the branch's 81-bit input **at the moment of
+                             prediction** (the snapshot, not the "current" one)
+           taken          -- did the branch actually jump (the ground-truth label y)
+
+   ① First compute the "whether to learn" probability:
+        p_clause_fb = (THRESHOLD − y·vote) / (2·THRESHOLD)
+      · y = +1 (taken) / −1 (not taken); vote is the vote sum **before** the update
+      · y·vote = +THRESHOLD (confident and right) → p = 0   → no clause updates this round (frozen)
+      · y·vote = 0 (vote = 0, undecided)          → p = 0.5 → learn with probability one half
+      · y·vote = −THRESHOLD (confidently wrong)   → p = 1   → every clause updates
+      Intuition: **learn only from "surprises"** -- the more confident it is, the less
+      it changes; once it is right it is left alone.
+      ⚠️ Writing the denominator as 2.0 * THRESHOLD (a floating-point literal) is
+         **mandatory**: with 2 * THRESHOLD, integer division truncates 0.5 to 0 when
+         vote = 0 ⇒ "no feedback at all when undecided" ⇒ the machine drifts into a
+         constant predictor. (One of the most famous traps in TM implementations,
+         practice-project lesson #2; this repository is **correct** here, do not
+         "simplify" it.)
+
+   ② Per clause: update only if `rand_01() <= p_clause_fb` -- each clause rolls its
+      own die.
+      Note that this uses predict = false ⇒ **an empty clause counts as "fired"
+      here** (see tm_eval_clause).
+
+   ③ Polarity x true direction → feedback type (the structural core of the file):
+
+                true taken           true not-taken
+        positive clause   Type I  (strengthen)  Type II (kill)
+        negative clause   Type II (kill)       Type I  (strengthen)
+
+      In one sentence: **Type I always goes to the half that "voted right", Type II
+      always goes to the half that "voted wrong".**
+
+   ── Alignment with the practice project / Granmo reference implementation ──
+   This function uses **the same p_clause_fb to control both directions**, which is
+   the correct post-fix form. The old bug was using 1−p for Type II: then the number
+   of clauses updated per step was always C/2, independent of |vote|, and the machine
+   never stopped (in the practice project, a y=99 snapshot crashed 8/8 from 92.6% to
+   10.0%). **Do not change this back to 1−p.**
+   ========================================================================= */
+void tm_update(tm_t *tm, const uint8_t *input_literals, bool taken) {
+    const int target = taken ? 1 : -1;
+    int vote = tm_vote(tm, input_literals);
+
+    double p_clause_fb = (double)(THRESHOLD - target * vote) / (2.0 * THRESHOLD);
+
+    if (p_clause_fb < 0.0) {
+        p_clause_fb = 0.0;
+    } else if (p_clause_fb > 1.0) {
+        p_clause_fb = 1.0;
+    }
+
+    for (int clause_idx = 0; clause_idx < NUM_CLAUSES; clause_idx++) {
+        bool clause_output = tm_eval_clause(tm, clause_idx, input_literals, false);
+        bool is_pos_clause = (clause_idx < NUM_CLAUSES / 2);
+
+        if (rand_01() <= p_clause_fb) {
+            if (taken) {
+                if (is_pos_clause) {
+                    tm_fb_type1(tm, clause_idx, input_literals, clause_output);
+                } else {
+                    tm_fb_type2(tm, clause_idx, input_literals, clause_output);
+                }
+            } else {
+                if (is_pos_clause) {
+                    tm_fb_type2(tm, clause_idx, input_literals, clause_output);
+                } else {
+                    tm_fb_type1(tm, clause_idx, input_literals, clause_output);
+                }
+            }
+        }
+    }
+}
+
+
+
+/* TA state dump (**off by default**: the DUMP_STATE_CSV line in tm.h is commented
+   out).
+   Output format: one line per clause; each cell is `state − NUM_STATES`, so
+       > 0  → this literal is included in this clause (more positive = more "certain to include")
+       <= 0 → not included (more negative = pushed further away)
+   Column names are the positive literal names; the ones with a `not_` prefix are
+   negated literals (so one column = one literal).
+
+   Purpose: this is the **most valuable scalpel** in the project -- it shows directly
+   what the TM has actually learned. For measured examples (first enable
+   DUMP_STATE_CSV in tm.h, then run ./cbp) see
+   .dsh/logs/design/tm_bp_diagnosis.md.
+
+   ⚠️ Note when it is called: tm_predictor.cc::print_stats() calls it once at **the
+      end of the simulation**, so it dumps the state at the moment the whole trace
+      finished, not the state over time; for a non-stationary trace it mostly
+      reflects what was learned in the last phase. */
+#ifdef DUMP_STATE_CSV
+    void tm_dump_states_csv(const tm_t *tm, const char *filename) {
+        std::ofstream out(filename);
+
+        out << "clause,clause_type";
+
+        for (int lit_idx = 0; lit_idx < NUM_INPUTS * 2; lit_idx++) {
+            int input_idx = lit_idx % NUM_INPUTS;
+            bool negated = (lit_idx >= NUM_INPUTS);
+
+            out << ",";
+
+            if (negated) {
+                out << "not_";
+            }
+
+            out << TM_INPUT_NAMES[input_idx];
+        }
+
+        out << "\n";
+
+        for (int clause_idx = 0;  clause_idx < NUM_CLAUSES; clause_idx++) {
+
+            out << clause_idx << ",";
+
+            if (clause_idx < NUM_CLAUSES / 2) {
+                out << "positive";
+            }
+            else {
+                out << "negative";
+            }
+
+            for (int lit_idx = 0; lit_idx < NUM_INPUTS * 2; lit_idx++) {
+                out << "," << ((int)tm->automata[clause_idx][lit_idx] - NUM_STATES);
+            }
+
+            out << "\n";
+        }
+
+        std::cout << "TM TA states dumped to " << filename << "\n";
+    }
+#endif
