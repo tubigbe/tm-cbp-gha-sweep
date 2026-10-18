@@ -1,0 +1,5 @@
+variant,trace,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,GShare MPKI,GShare accuracy,TAGE MPKI,instructions,GShare wrong
+00_baseline,media_0_trace,242.5,0,7.17658,87.242%,981502,143532,10.7165,80.949%,1.5941,20000044,214330
+00_baseline,media_1_trace,241.0,0,7.37598,85.9794%,904647,147520,10.7548,79.5569%,1.5386,20000048,215096
+00_baseline,media_2_trace,267.1,0,1.78575,94.7654%,646571,35715,3.76944,88.9505%,0.5817,20000038,75389
+00_baseline,media_3_trace,242.7,0,7.44238,86.8323%,981558,148848,11.6411,79.4037%,1.8084,20000046,232822
