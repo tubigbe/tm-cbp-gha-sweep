@@ -159,6 +159,14 @@ jobs:
           cat isoB_results/shard-*.csv > isoB_results/ALL.csv
           wc -l isoB_results/ALL.csv
 
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out isoB_results/logs \
+            --expect 105 --expect-csv 'isoB_results/shard-*.csv'
+          ls -la isoB_results/logs/ | head -5
+          gzip -dc isoB_results/logs/*.gz | grep -cE '^Measured # of instructions'
+
       - name: commit and push (skip ci to avoid re-triggering)
         run: |
           set -euo pipefail
@@ -166,5 +174,12 @@ jobs:
           git config user.email "gha-sweep-bot@users.noreply.github.com"
           git add -f isoB_results/
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "iso-area B full-set results: 49 in / 53 clauses x 105 traces [skip ci]"
-          git push
+          git commit -m "iso-area B full-set results: 49 in / 53 clauses x 105 traces + raw stdout [skip ci]"
+          # another collect (A control) may push at the same time: retry on reject
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push collect results"; exit 1

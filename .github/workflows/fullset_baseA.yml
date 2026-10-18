@@ -22,6 +22,8 @@ on:
       - '.github/workflows/fullset_baseA.yml'
   workflow_dispatch:
 
+# First run: 2026-10-18 (full-scale ku<->GHA control over all 105 traces)
+
 permissions:
   contents: write
 
