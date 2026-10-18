@@ -1,0 +1,121 @@
+name: pipeline logtest (raw stdout travels with collect)
+
+# Minimal end-to-end proof for the GHA-first policy:
+#   shard -> upload-artifact -> download-artifact -> gzip logs -> commit back to repo
+# One shard, ONE trace (media_0_trace, iso-area B). If the pipeline is broken this
+# costs minutes, not a 105-trace run.  The committed log can then be checked on ku
+# against the existing isoB_results/ALL.csv row for the same trace.
+#
+# Trigger: push touching this workflow / its plan / scripts/pack_logs.py, or manual.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'logtest.json'
+      - 'scripts/pack_logs.py'
+      - '.github/workflows/logtest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build iso-area B + smoke gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: build B and check its ku smoke values
+        run: |
+          set -euo pipefail
+          cp variants/isoB_49in_53cl/*.h variants/isoB_49in_53cl/*.cc .
+          grep -E '^#define (NUM_INPUTS|NUM_CLAUSES|THRESHOLD|TM_PATH_BRANCHES)' tm.h
+          make clean && make -j"$(nproc)"
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g.txt
+          grep -qF "TM initialised with size 5194 bytes" g.txt
+          grep -qF "TM right: 124640" g.txt
+          grep -qF "TM MPKI: 4.22641" g.txt
+          echo "GATE PASSED - iso-area B reproduces its ku smoke values"
+
+  logtest:
+    name: single-trace shard
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: run 1 trace (media_0_trace, iso-area B)
+        run: |
+          set -uo pipefail
+          python3 scripts/run_fullset_cfg.py \
+            --shard 0 \
+            --configs isoB_49in_53cl \
+            --plan logtest.json \
+            --parallel 1 \
+            --traces-dir traces \
+            --logs-dir logs \
+            --out-dir logtest_results
+      - name: show what the runner kept
+        if: always()
+        run: |
+          echo "--- logs/ ---"; ls -la logs/ || true
+          echo "--- key lines in the raw stdout ---"
+          grep -hE '^TM (MPKI|right)|^Measured # of instructions|^GShare (MPKI|wrong)' logs/*.log || true
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logtest-0
+          path: |
+            logtest_results/
+            logs/
+          retention-days: 7
+
+  collect:
+    name: collect -> gzip raw stdout -> commit
+    needs: logtest
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: logtest-*
+          merge-multiple: true
+          path: collected
+
+      - name: assemble CSV + pack raw stdout
+        run: |
+          set -euo pipefail
+          echo "--- collected tree ---"; find collected -type f | sort
+          mkdir -p logtest_results
+          find collected -name '*.csv' -exec cp {} logtest_results/ \;
+          cat logtest_results/shard-*.csv > logtest_results/ALL.csv
+          python3 scripts/pack_logs.py --src collected --out logtest_results/logs --expect 1
+          echo "--- packed ---"; ls -la logtest_results/logs/
+          echo "--- key lines recovered from the packed log ---"
+          gzip -dc logtest_results/logs/*.log.gz \
+            | grep -E '^TM (MPKI|right)|^Measured # of instructions|^GShare (MPKI|wrong)'
+          echo "--- recovered vs CSV row ---"
+          cat logtest_results/ALL.csv
+
+      - name: commit and push (skip ci)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f logtest_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "logtest: per-trace raw stdout now committed by collect (1 trace) [skip ci]"
+          git push

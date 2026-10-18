@@ -1,0 +1,12 @@
+{
+ "0": {
+  "category": "media",
+  "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n",
+  "tarball": "media.tar.xz",
+  "size_gb": 0.38,
+  "traces": [
+   "media_0_trace"
+  ],
+  "est_trace_sec": 585
+ }
+}
