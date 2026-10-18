@@ -1,0 +1,158 @@
+name: TM collect recovery B (10-16 iso-area B run, never re-run a shard)
+
+# WHY THIS EXISTS
+# The 10-16 iso-area B full-set run (head_sha 69e3e6d) finished all 7 shards
+# success, but its collect only committed the 8 CSVs: the per-trace raw stdout
+# stayed in the artifacts (retention 14 days -> 10-30).  Those artifacts are the
+# complete, unmodified B evidence, so recover them instead of re-running 105
+# traces.  This also produces the two columns the old CSVs never had
+# (instructions / GShare wrong) by scraping the recovered raw stdout.
+#
+# Trigger: push touching recover_b.json (this repo has no API credentials on the
+# ku side, so a push is the only dispatch we have).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'recover_b.json'
+      - '.github/workflows/recover_b.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read           # download artifacts of another run + read its job log
+
+env:
+  EXPECT_B: "105"
+  OLD_B_SHA: "69e3e6d"
+
+jobs:
+  collect:
+    name: recover B from the 10-16 run's artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: find the 10-16 B run id (gh has the workflow token)
+        id: findb
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh run list --workflow fullset_isoB.yml --limit 30 \
+            --json databaseId,headSha,conclusion,createdAt,displayTitle | tee /tmp/runs.json
+          id=$(gh run list --workflow fullset_isoB.yml --limit 30 \
+            --json databaseId,headSha \
+            --jq '[.[] | select(.headSha | startswith("69e3e6d"))] | sort_by(.databaseId) | last | .databaseId')
+          echo "10-16 B run id = $id"
+          test -n "$id"
+          echo "run_id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: archive the failed 10-18 B run log (best effort)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p recovery_logs
+          gh run view 39142060395 --log-failed > recovery_logs/b_collect_failed.log 2>&1 || true
+          wc -c recovery_logs/b_collect_failed.log || true
+          grep -nE 'pack_logs|exit code|##\[error\]|Traceback|No such file' \
+            recovery_logs/b_collect_failed.log | tail -30 || true
+
+      - name: download the 10-16 run's 7 shard artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: isoB-*
+          merge-multiple: true
+          path: collected_b
+          run-id: ${{ steps.findb.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: inventory + pack raw stdout + rebuild CSV (fail-soft)
+        continue-on-error: true
+        run: |
+          find collected_b -type f | head -20
+          python3 scripts/recover_collect.py --src collected_b --out isoB_results \
+            --expect "${EXPECT_B}"
+
+      - name: rebuild ALL.csv with instructions / GShare wrong from the recovered raw stdout
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import csv, glob, gzip, importlib.util, io, os
+          spec = importlib.util.spec_from_file_location("rfc", "scripts/run_fullset_cfg.py")
+          rfc = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(rfc)
+          fields = list(rfc.FIELDS)
+          rows, extra = [], {}
+          for f in glob.glob("isoB_results/shard-*.csv"):
+              with open(f, newline="") as fh:
+                  for r in csv.DictReader(fh):
+                      extra[(r.get("variant"), r.get("trace"))] = (r.get("seconds", ""), r.get("rc", ""))
+          for gz in sorted(glob.glob("isoB_results/logs/*.log.gz")):
+              base = os.path.basename(gz)[:-3]              # cfg__trace.log
+              if "__" not in base:
+                  continue
+              cfg, tr = base[:-4].split("__", 1)
+              with gzip.open(gz, "rt", errors="replace") as fh:
+                  text = fh.read()
+              rec = {"variant": cfg, "trace": tr}
+              rec.update(rfc.scrape(io.StringIO(text)))
+              s, rc = extra.get((cfg, tr), ("", ""))
+              rec["seconds"], rec["rc"] = s, rc
+              rows.append(rec)
+          with open("isoB_results/ALL.csv", "w", newline="") as fh:
+              w = csv.DictWriter(fh, fieldnames=fields, extrasaction="ignore")
+              w.writeheader()
+              for r in sorted(rows, key=lambda x: (x["variant"], x["trace"])):
+                  w.writerow(r)
+          missing = [r for r in rows if not r.get("instructions") or not r.get("GShare wrong")]
+          print("rebuilt ALL.csv: %d rows, %d lacking a new column" % (len(rows), len(missing)))
+          print("fields:", fields)
+          PY
+          head -3 isoB_results/ALL.csv
+
+      - name: commit and push (data first, [skip ci])
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f isoB_results/ recovery_logs/ || true
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "isoB full-set archive (recovered from the 10-16 run's artifacts): 105 raw stdout + instructions / GShare wrong [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push recovered B results"; exit 1
+
+      - name: verdict (red here means the archive is still incomplete)
+        run: |
+          set -euo pipefail
+          test -s isoB_results/logs/SHA256SUMS
+          n=$(find isoB_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n (expect ${EXPECT_B})"
+          test "$n" -eq "${EXPECT_B}"
+          python3 - <<'PY'
+          import csv, glob, gzip, sys
+          rows = list(csv.DictReader(open("isoB_results/ALL.csv")))
+          rows = [r for r in rows if r.get("trace") and r["trace"] != "trace"]
+          bad = [r["trace"] for r in rows
+                 if not r.get("instructions") or not r.get("GShare wrong")]
+          print("ALL.csv rows: %d, rows missing a new column: %d" % (len(rows), len(bad)))
+          n = 0
+          for f in glob.glob("isoB_results/logs/*.log.gz"):
+              with gzip.open(f, "rt", errors="replace") as fh:
+                  t = fh.read()
+              if "Measured # of instructions" in t and "GShare wrong" in t:
+                  n += 1
+          print("logs carrying instructions + GShare wrong: %d" % n)
+          ok = len(rows) == 105 and not bad and n == 105
+          print("VERDICT:", "COMPLETE" if ok else "INCOMPLETE")
+          sys.exit(0 if ok else 1)
+          PY

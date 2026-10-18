@@ -1,0 +1,8 @@
+{
+  "purpose": "trigger marker for .github/workflows/recover_b.yml (re-collect the 10-16 iso-area B run's artifacts: complete raw stdout + the two new columns, no shard re-run)",
+  "mode": "B",
+  "old_b_sha": "69e3e6d",
+  "expect_b": 105,
+  "triggered_by": "sim-bot 2026-10-18 evening, after the 10-18 B re-run lost its compress shard to a Google Drive flake",
+  "note": "The 10-16 artifacts are still inside their 14-day retention window; they are the unmodified B evidence. Also archives the failed 10-18 B collect log under recovery_logs/."
+}
