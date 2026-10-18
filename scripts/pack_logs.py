@@ -23,6 +23,19 @@ import os
 import sys
 
 
+def count_csv_rows(patterns):
+    """Number of data rows (one per run) across the given shard CSV globs."""
+    import csv
+    import glob
+    total = 0
+    for pat in patterns:
+        for f in sorted(glob.glob(pat)):
+            with open(f, newline="") as fh:
+                rows = list(csv.reader(fh))
+            total += max(0, len(rows) - 1)  # minus the header
+    return total
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--src", default="collected", help="download-artifact root")
@@ -30,6 +43,9 @@ def main():
     ap.add_argument("--suffix", default=".log", help="artifact file suffix to pack")
     ap.add_argument("--expect", type=int, default=0,
                     help="required number of logs; 0 = only require >=1")
+    ap.add_argument("--expect-csv", default="",
+                    help="comma-separated glob(s) of shard CSVs; one data row per run, "
+                         "so the total row count must equal the number of logs")
     a = ap.parse_args()
 
     os.makedirs(a.out, exist_ok=True)
@@ -74,6 +90,14 @@ def main():
         print("::error::pack_logs: expected %d log(s), got %d - incomplete collect"
               % (a.expect, len(manifest)))
         return 1
+    if a.expect_csv:
+        runs = count_csv_rows(a.expect_csv.split(","))
+        if runs != len(manifest):
+            print("::error::pack_logs: %d CSV run row(s) vs %d log(s) - "
+                  "some raw stdout did not make it back" % (runs, len(manifest)))
+            return 1
+        print("pack_logs: %d log(s) == %d run row(s) in %s"
+              % (len(manifest), runs, a.expect_csv))
     return 0
 
 

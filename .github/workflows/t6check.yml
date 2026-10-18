@@ -158,6 +158,12 @@ jobs:
           print(txt)
           open("t6_results/SUMMARY.md","w").write(txt + "\n")
           PY
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out t6_results/logs --expect-csv 't6_results/shard-*.csv'
+          ls -la t6_results/logs/ | head -5
+
       - name: commit and push
         run: |
           set -euo pipefail

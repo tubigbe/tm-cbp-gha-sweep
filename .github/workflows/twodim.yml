@@ -207,6 +207,12 @@ jobs:
           print("\n".join(lines))
           PY
 
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out twodim_results/logs --expect-csv 'twodim_results/shard-*.csv'
+          ls -la twodim_results/logs/ | head -5
+
       - name: commit and push (skip ci to avoid re-triggering)
         run: |
           set -euo pipefail

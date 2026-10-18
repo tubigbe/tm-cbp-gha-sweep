@@ -125,6 +125,12 @@ jobs:
           cat fullset_results/shard-*.csv > fullset_results/ALL.csv || true
           wc -l fullset_results/ALL.csv || true
 
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out fullset_results/logs --expect-csv 'fullset_results/shard-*.csv'
+          ls -la fullset_results/logs/ | head -5
+
       - name: commit and push (skip ci to avoid re-triggering)
         run: |
           set -euo pipefail

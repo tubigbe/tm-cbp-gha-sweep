@@ -1,1 +1,13 @@
-baseline: 不做任何改动，直接用仓库里的源码
+baseline A control: byte copies of the committed A tree
+(81 in / 32 clauses / T=6 / 4 path branches).
+
+Used by fullset_baseA.yml to run the A baseline over all 105 traces on GHA, so
+GHA numbers AND the per-trace raw stdout can be compared 1:1 with the ku
+baseline (AGENTS.md 10.1, .dsh/logs/baseline/standalone_tm_6e6d30a_ku_20260929.csv).
+That full-scale ku<->GHA equivalence was never verified before (the existing
+gates only cover the two sample traces).
+
+sha256 of the four files: see SHA256SUMS next to this note.
+The gate re-checks that they reproduce the ku smoke values 4.72575 / 124142.
+
+(original intent kept: 不做任何改动，直接用仓库里的源码 — these are copies of exactly that source)

@@ -172,6 +172,12 @@ jobs:
           print("coverage (distinct traces per cfg/mode):", sorted({len(v) for v in by.values()}))
           PY
 
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out ablation_results/logs --expect-csv 'ablation_results/shard-*.csv'
+          ls -la ablation_results/logs/ | head -5
+
       - name: commit and push (skip ci to avoid re-triggering)
         run: |
           set -euo pipefail

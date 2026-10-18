@@ -15,7 +15,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FIELDS = ["variant", "trace", "seconds", "rc",
           "TM MPKI", "TM accuracy", "TM right", "TM wrong",
-          "GShare MPKI", "GShare accuracy", "TAGE MPKI"]
+          "GShare MPKI", "GShare accuracy", "TAGE MPKI",
+          # the two columns the old CSVs lacked, needed for the per-trace
+          # bit-identity check (instructions must match the ku baseline; any
+          # GShare wrong drift means the comparison is polluted)
+          "instructions", "GShare wrong"]
 
 
 def sh(cmd, **kw):
@@ -40,6 +44,12 @@ def scrape(path):
                       "GShare MPKI", "GShare accuracy"):
                 if line.startswith(k + ":"):
                     out[k] = line.split(":", 1)[1].strip()
+            if line.startswith("GShare wrong:"):
+                out["GShare wrong"] = line.split(":", 1)[1].strip()
+            # NOTE: this line appears twice (once under TM, once under GShare);
+            # both are the same trace instruction count, last one wins.
+            if line.startswith("Measured # of instructions:"):
+                out["instructions"] = line.split(":", 1)[1].strip()
             f = line.split()
             if len(f) >= 5 and f[0] == "CondDirect":
                 out["TAGE MPKI"] = f[4]

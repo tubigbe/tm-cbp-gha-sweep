@@ -1,0 +1,182 @@
+name: TM full-set A baseline (ku<->GHA full-scale control)
+
+# WHY THIS EXISTS
+# Every number we will quote from now on is produced on GHA, but it is compared
+# against the ku baseline (AGENTS.md 10.1 / .dsh/logs/baseline/
+# standalone_tm_6e6d30a_ku_20260929.csv).  The determinism gates in the other
+# workflows only prove the *smoke* samples agree; the 105-trace level ku<->GHA
+# equivalence has never been checked.  This workflow runs the A baseline itself
+# over all 105 traces on the same runners, so the per-trace numbers (and the
+# committed raw stdout) can be compared 1:1 with the ku baseline logs.
+#
+# This is a CONTROL run, not a candidate: it changes no knobs.
+#   variants/00_baseline = byte copies of the committed A tree (see its NOTE.txt)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fullsets_isoB.json'            # reuses the 105-trace / 7-category plan
+      - 'scripts/run_fullset_cfg.py'
+      - 'variants/00_baseline/**'
+      - '.github/workflows/fullset_baseA.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + A baseline gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: assert the committed tree really is the 81/32/T6 baseline
+        run: |
+          set -euo pipefail
+          grep -qE '^#define NUM_INPUTS 81' tm.h
+          grep -qE '^#define NUM_CLAUSES 32' tm.h
+          grep -qE '^#define THRESHOLD 6' tm.h
+          grep -qE '^#define TM_PATH_BRANCHES 4' tm.h
+          echo "committed tree = A baseline (81 in / 32 cl / T=6 / 4 path branches)"
+
+      - name: gate 1 - pristine build must equal AGENTS.md 10.3
+        run: |
+          set -uo pipefail
+          make clean && make -j"$(nproc)"
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g1b.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck g1a.txt A-int-right "TM right: 124142"
+          ck g1a.txt A-int-mpki  "TM MPKI: 4.72575"
+          ck g1a.txt A-int-acc   "TM accuracy: 96.3424%"
+          ck g1b.txt A-fp-right  "TM right: 107985"
+          ck g1b.txt A-fp-mpki   "TM MPKI: 3.26237"
+          if [ "$fail" -ne 0 ]; then echo "::error::GATE 1 FAILED"; exit 1; fi
+
+      - name: gate 2 - variants/00_baseline must restore A and stay bit-identical
+        run: |
+          set -uo pipefail
+          sha256sum variants/00_baseline/*.h variants/00_baseline/*.cc
+          cp variants/00_baseline/*.h variants/00_baseline/*.cc .
+          make clean && make -j"$(nproc)"
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2a.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck g2a.txt A-int-right "TM right: 124142"
+          ck g2a.txt A-int-mpki  "TM MPKI: 4.72575"
+          if [ "$fail" -ne 0 ]; then echo "::error::GATE 2 FAILED"; exit 1; fi
+          echo "GATES PASSED - A baseline control build is bit-identical on the runner"
+
+  fullset:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("fullsets_isoB.json"))["${{ matrix.shard }}"]
+          print("category :", p["category"])
+          print("traces   :", len(p["traces"]))
+          print("gdrive   :", p["gdrive_id"], "~%.2f GB" % p["size_gb"])
+          print(", ".join(p["traces"]))
+          PY
+
+      - name: run full-set shard (A baseline control)
+        run: |
+          set -uo pipefail
+          python3 scripts/run_fullset_cfg.py \
+            --shard "${{ matrix.shard }}" \
+            --configs 00_baseline \
+            --plan fullsets_isoB.json \
+            --parallel 4 \
+            --traces-dir traces \
+            --logs-dir logs \
+            --out-dir baseA_results
+
+      - name: upload results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseA-${{ matrix.shard }}
+          path: |
+            baseA_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + commit results and raw stdout
+    needs: fullset
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: baseA-*
+          merge-multiple: true
+          path: collected
+
+      - name: assemble
+        run: |
+          set -euo pipefail
+          mkdir -p baseA_results
+          find collected -name '*.csv' -exec cp {} baseA_results/ \;
+          ls -la baseA_results/
+          cat baseA_results/shard-*.csv > baseA_results/ALL.csv
+          wc -l baseA_results/ALL.csv
+
+      - name: pack per-trace raw stdout (must come back with the CSV)
+        run: |
+          set -euo pipefail
+          python3 scripts/pack_logs.py --src collected --out baseA_results/logs \
+            --expect 105 --expect-csv 'baseA_results/shard-*.csv'
+          ls -la baseA_results/logs/ | head -5
+          gzip -dc baseA_results/logs/*.gz | grep -cE '^Measured # of instructions'
+
+      - name: commit and push (skip ci to avoid re-triggering)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f baseA_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "baseA full-set control: A baseline x 105 traces + raw stdout [skip ci]"
+          # the isoB collect may push at the same time: retry on reject
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push collect results"; exit 1
