@@ -84,20 +84,36 @@ def main():
     os.makedirs(a.traces_dir, exist_ok=True)
 
     # ---- stream the category tarball from Google Drive and extract it in one pipe ----
+    # Hardened after the 2026-10-18 flake: with 14 runners pulling multi-GB tarballs at
+    # once, Google Drive stalled one shard and it died 52 s in with a bare exit 1.
+    # Now: connect/max time limits, low-speed abort, curl-level retries, plus a
+    # Python-level retry loop that checks the extraction actually produced the traces.
     url = ("https://drive.usercontent.google.com/download?id=%s&export=download&confirm=t"
            % me["gdrive_id"])
     t0 = time.time()
-    cmd = ('set -o pipefail; curl -sSL --retry 3 --retry-delay 5 "%s" | tar -xJ -C %s'
-           % (url, a.traces_dir))
-    print("+ " + cmd, flush=True)
-    subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
+    found = 0
+    for attempt in range(1, 4):
+        cmd = ('set -o pipefail; curl -sSL --connect-timeout 30 --max-time 1800 '
+               '--retry 5 --retry-delay 5 --retry-all-errors '
+               '--speed-limit 100000 --speed-time 60 "%s" | tar -xJ -C %s'
+               % (url, a.traces_dir))
+        print(f"+ download attempt {attempt}: {cmd}", flush=True)
+        rc = subprocess.run(cmd, shell=True, executable="/bin/bash").returncode
+        found = sum(1 for t in traces if find_trace(a.traces_dir, t))
+        print(f"  attempt {attempt}: curl/tar rc={rc}, traces present {found}/{len(traces)}",
+              flush=True)
+        if found == len(traces):
+            break
+        print("  retrying download after 15 s", flush=True)
+        time.sleep(15)
     print(f"drive download+extract: {time.time()-t0:.0f}s")
     sh("df -h . | tail -1")
-    found = sum(1 for t in traces if find_trace(a.traces_dir, t))
     print(f"found {found}/{len(traces)} traces after extraction")
     if found != len(traces):
         print("!! missing traces, listing traces dir:")
         subprocess.run(f"find {a.traces_dir} -name '*.gz' | head -50", shell=True)
+        print("!! giving up on this shard: the trace set is incomplete")
+        return 3
 
     os.makedirs(a.logs_dir, exist_ok=True)
     os.makedirs(a.out_dir, exist_ok=True)
