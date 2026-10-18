@@ -176,7 +176,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/pack_logs.py --src collected --out ablation_results/logs --expect-csv 'ablation_results/shard-*.csv'
-          ls -la ablation_results/logs/ | head -5
+          n=$(find ablation_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh ablation_results/logs
 
       - name: commit and push (skip ci to avoid re-triggering)
         run: |

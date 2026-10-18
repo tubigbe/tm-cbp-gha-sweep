@@ -161,10 +161,10 @@ jobs:
       - name: pack per-trace raw stdout (must come back with the CSV)
         run: |
           set -euo pipefail
-          python3 scripts/pack_logs.py --src collected --out baseA_results/logs \
-            --expect 105 --expect-csv 'baseA_results/shard-*.csv'
-          ls -la baseA_results/logs/ | head -5
-          gzip -dc baseA_results/logs/*.gz | grep -cE '^Measured # of instructions'
+          python3 scripts/pack_logs.py --src collected --out baseA_results/logs --expect 105 --expect-csv 'baseA_results/shard-*.csv'
+          n=$(find baseA_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh baseA_results/logs
 
       - name: commit and push (skip ci to avoid re-triggering)
         run: |

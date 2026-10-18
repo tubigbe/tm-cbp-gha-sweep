@@ -129,7 +129,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/pack_logs.py --src collected --out fullset_results/logs --expect-csv 'fullset_results/shard-*.csv'
-          ls -la fullset_results/logs/ | head -5
+          n=$(find fullset_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh fullset_results/logs
 
       - name: commit and push (skip ci to avoid re-triggering)
         run: |

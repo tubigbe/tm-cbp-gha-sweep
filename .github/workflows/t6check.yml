@@ -162,7 +162,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/pack_logs.py --src collected --out t6_results/logs --expect-csv 't6_results/shard-*.csv'
-          ls -la t6_results/logs/ | head -5
+          n=$(find t6_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh t6_results/logs
 
       - name: commit and push
         run: |

@@ -211,7 +211,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/pack_logs.py --src collected --out twodim_results/logs --expect-csv 'twodim_results/shard-*.csv'
-          ls -la twodim_results/logs/ | head -5
+          n=$(find twodim_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh twodim_results/logs
 
       - name: commit and push (skip ci to avoid re-triggering)
         run: |
