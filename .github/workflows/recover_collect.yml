@@ -61,7 +61,7 @@ jobs:
           run-id: ${{ env.RUN_A }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: inventory + pack (fail-soft: the verdict comes after the commit)
+      - name: inventory and pack (fail-soft; verdict comes after the commit)
         continue-on-error: true
         run: |
           ls -la collected_a | head -30
