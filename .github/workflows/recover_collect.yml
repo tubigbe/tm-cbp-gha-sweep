@@ -43,7 +43,7 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p recovery_logs
-          curl -sSL --location-trusted \
+          curl -sSL --retry 3 -w 'http_code=%{http_code}\n' \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/actions/jobs/${JOB_A}/logs" \
