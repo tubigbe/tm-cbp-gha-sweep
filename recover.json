@@ -1,0 +1,8 @@
+{
+  "purpose": "trigger marker for .github/workflows/recover_collect.yml (push to this file dispatches a re-collect of an EXISTING run)",
+  "mode": "A",
+  "run_a": 39142060478,
+  "job_a": 117729781009,
+  "expect_a": 105,
+  "note": "Re-collects the A baseline control (7 shards, all success) from its artifacts; never re-runs a shard. Edit this file to re-dispatch."
+}

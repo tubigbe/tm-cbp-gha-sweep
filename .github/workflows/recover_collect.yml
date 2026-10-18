@@ -1,0 +1,108 @@
+name: TM collect recovery (re-collect an existing run, never a shard)
+
+# WHY THIS EXISTS
+# Run 39142060478 (A baseline control, commit a4ac176) finished all 7 shards
+# success, then its collect job died 12 s in with **exit code 2** and no
+# ::error:: from scripts/pack_logs.py - i.e. the step's shell/python aborted
+# before the count check, so the CSVs + per-trace raw stdout never came back.
+# The artifacts are fine (14 days); re-running the *shards* would burn another
+# hour of runner time for nothing.  This workflow re-collects straight from the
+# existing run's artifacts with the workflow's own GITHUB_TOKEN, commits them
+# (data first, verdict second) and archives the failed job log in the repo so
+# nobody needs credentials to see why the first collect died.
+#
+# Trigger: push touching recover.json (this repo has no API credentials on the
+# ku side, so a push is the only dispatch we have).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'recover.json'
+      - '.github/workflows/recover_collect.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read           # needed to download artifacts of another run + read its job log
+
+env:
+  RUN_A: "39142060478"
+  JOB_A: "117729781009"   # the failed collect job of RUN_A
+  EXPECT_A: "105"
+
+jobs:
+  recover:
+    name: re-collect A from run ${{ github.event.inputs.run_id || '39142060478' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: archive the failed collect job log in the repo
+        continue-on-error: true
+        run: |
+          mkdir -p recovery_logs
+          curl -sSL --location-trusted \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/jobs/${JOB_A}/logs" \
+            -o recovery_logs/a_collect_job.log
+          wc -c recovery_logs/a_collect_job.log || true
+          echo "----- last 40 lines of the failed collect job -----"
+          tail -n 40 recovery_logs/a_collect_job.log || true
+
+      - name: download A's artifacts from the existing run (no shard re-run)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: baseA-*
+          merge-multiple: true
+          path: collected_a
+          run-id: ${{ env.RUN_A }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: inventory + pack (fail-soft: the verdict comes after the commit)
+        continue-on-error: true
+        run: |
+          ls -la collected_a | head -30
+          find collected_a -type f | wc -l
+          python3 scripts/recover_collect.py --src collected_a --out baseA_results \
+            --expect "${EXPECT_A}"
+
+      - name: commit and push (data first, [skip ci])
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f baseA_results/ recovery_logs/ || true
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "baseA full-set control (re-collect from run ${RUN_A}): A baseline x 105 traces + raw stdout + failed-job log [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push recovered collect results"; exit 1
+
+      - name: verdict (a red run here means the collect is still incomplete)
+        run: |
+          set -euo pipefail
+          test -s baseA_results/logs/SHA256SUMS
+          n=$(find baseA_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n (expect ${EXPECT_A})"
+          test "$n" -eq "${EXPECT_A}"
+          python3 - <<'PY'
+          import gzip, glob, os, sys
+          expect = int(os.environ.get("EXPECT_A", "105"))
+          n = 0
+          for f in glob.glob("baseA_results/logs/*.log.gz"):
+              with gzip.open(f, "rt", errors="replace") as fh:
+                  t = fh.read()
+              if "Measured # of instructions" in t and "GShare wrong" in t:
+                  n += 1
+          print("logs carrying instructions + GShare wrong: %d (expect %d)" % (n, expect))
+          sys.exit(0 if n == expect else 1)
+          PY
+          tail -n 20 baseA_results/INVENTORY.txt
