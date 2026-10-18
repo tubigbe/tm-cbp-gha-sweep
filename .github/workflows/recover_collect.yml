@@ -64,7 +64,8 @@ jobs:
       - name: inventory and pack (fail-soft; verdict comes after the commit)
         continue-on-error: true
         run: |
-          ls -la collected_a | head -30
+          du -sh collected_a || true
+          find collected_a -maxdepth 2 -type f | sed -n '1,30p'
           find collected_a -type f | wc -l
           python3 scripts/recover_collect.py --src collected_a --out baseA_results \
             --expect "${EXPECT_A}"
