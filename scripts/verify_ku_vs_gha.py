@@ -132,7 +132,9 @@ def main():
     print("\n== Q1: GHA A-baseline vs ku baseline raw stdout (same variant) ==")
     cmp("Q1", baseA, ref, Q1_FIELDS, ok, bad)
 
-    print("\n== Q2: GHA B re-run (10-18) vs GHA B first run (10-16) ==")
+    print("\n== Q2: current B data vs the committed 10-16 B CSV snapshot ==")
+    print("   (for the 10-16 archive this is RECOVERY FIDELITY; for a genuine")
+    print("    second GHA run it would be a GHA<->GHA reproducibility check)")
     cmp("Q2", isoB, oldB, Q2_FIELDS, ok, bad)
 
     print("\n== Q3: A vs B per-trace input-side columns (pollution gate) ==")
