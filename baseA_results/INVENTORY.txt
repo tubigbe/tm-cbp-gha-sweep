@@ -120,6 +120,6 @@
      14 rows  shard-04-fp.csv
       8 rows  shard-05-compress.csv
       4 rows  shard-06-media.csv
---- raw stdout: 105 log(s), 1418781 -> 410367 bytes in baseA_results/logs ---
+--- raw stdout: 105 log(s), 1418781 -> 410787 bytes in baseA_results/logs ---
 --- logs carrying 'instructions' + 'GShare wrong': 105 ---
 --- VERDICT: COMPLETE (files seen 112) ---
