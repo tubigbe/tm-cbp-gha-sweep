@@ -1,0 +1,328 @@
+shard 5	UNKNOWN STEP	﻿2026-10-18T15:49:02.1365246Z Current runner version: '2.337.0'
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1390329Z ##[group]Runner Image Provisioner
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1391168Z Hosted Compute Agent
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1391887Z Version: 20261012.601
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1392528Z Commit: f3dc54e1fb89da6852db922499a0233137369e1d
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1393449Z Build Date: 2026-10-12T17:48:21Z
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1394255Z Worker ID: {36c47f5d-5a7c-4f59-a5e2-74d3f3cf42bd}
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1395016Z Region: eastus2
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1395648Z Cloud: Azure
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1396196Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1397678Z ##[group]Operating System
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1398418Z Ubuntu
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1398938Z 24.04.5
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1399529Z LTS
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1400062Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1400691Z ##[group]Runner Image
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1401365Z Image: ubuntu-24.04
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1401975Z Version: 20261012.334.1
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1403845Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1405850Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261012.334
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1406993Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1408143Z ##[group]GITHUB_TOKEN Permissions
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1410414Z Contents: write
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1411032Z Metadata: read
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1411683Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1415361Z Secret source: Actions
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1416528Z Cache mode: write
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1417936Z Prepare workflow directory
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1757996Z Prepare all required actions
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.1806591Z Getting action download info
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.3957442Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.5202191Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.7361685Z Complete job name: shard 5
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8150796Z ##[group]Run actions/checkout@v4
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8151711Z with:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8152182Z   repository: tubigbe/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8156462Z   token: ***
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8156906Z   ssh-strict: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8157348Z   ssh-user: git
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8157797Z   persist-credentials: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8158286Z   clean: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8158736Z   sparse-checkout-cone-mode: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8159250Z   fetch-depth: 1
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8159677Z   fetch-tags: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8160134Z   show-progress: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8160580Z   lfs: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8160992Z   submodules: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8161452Z   set-safe-directory: true
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8161959Z   allow-unsafe-pr-checkout: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.8162787Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9172185Z Syncing repository: tubigbe/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9175364Z ##[group]Getting Git version info
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9176781Z Working directory is '/home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep'
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9178619Z [command]/usr/bin/git version
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9280676Z git version 2.55.0
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9309176Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9327083Z Temporarily overriding HOME='/home/runner/work/_temp/09951cba-c62e-475e-a3c6-2a7b1b56012e' before making global git config changes
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9329528Z Adding repository directory to the temporary git global config as a safe directory
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9334142Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9396647Z Deleting the contents of '/home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep'
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9402362Z ##[group]Initializing the repository
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9407772Z [command]/usr/bin/git init /home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9553460Z hint: Using 'master' as the name for the initial branch. This default branch name
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9554814Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9556094Z hint: to use in all of your new repositories, which will suppress this warning,
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9556851Z hint: call:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9557267Z hint:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9557808Z hint: 	git config --global init.defaultBranch <name>
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9558447Z hint:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9559035Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9559988Z hint: 'development'. The just-created branch can be renamed via this command:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9560738Z hint:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9561167Z hint: 	git branch -m <name>
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9561660Z hint:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9562294Z hint: Disable this message with "git config set advice.defaultBranchName false"
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9568619Z Initialized empty Git repository in /home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep/.git/
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9582266Z [command]/usr/bin/git remote add origin https://github.com/tubigbe/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9647063Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9647966Z ##[group]Disabling automatic garbage collection
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9655336Z [command]/usr/bin/git config --local gc.auto 0
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9699767Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9700524Z ##[group]Setting up auth
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9709241Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+shard 5	UNKNOWN STEP	2026-10-18T15:49:02.9748356Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0160819Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0200982Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0430182Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0469458Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0702958Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0744996Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0754697Z ##[group]Fetching the repository
+shard 5	UNKNOWN STEP	2026-10-18T15:49:03.0756302Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a4ac176f43cf86c81f7301287ef643d0d71709f7:refs/remotes/origin/main
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9446258Z From https://github.com/tubigbe/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9448572Z  * [new ref]         a4ac176f43cf86c81f7301287ef643d0d71709f7 -> origin/main
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9453703Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9455939Z ##[group]Determining the checkout info
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9458229Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9461381Z [command]/usr/bin/git sparse-checkout disable
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9882702Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9919029Z ##[group]Checking out the ref
+shard 5	UNKNOWN STEP	2026-10-18T15:49:09.9924416Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.5644235Z Switched to a new branch 'main'
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.5649242Z branch 'main' set up to track 'origin/main'.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.5726549Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.5775356Z [command]/usr/bin/git log -1 --format=%H
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.5803348Z a4ac176f43cf86c81f7301287ef643d0d71709f7
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6026153Z ##[group]Run grep -m1 'model name' /proc/cpuinfo
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6026712Z ^[[36;1mgrep -m1 'model name' /proc/cpuinfo^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6027076Z ^[[36;1mnproc^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6027341Z ^[[36;1mfree -g | head -2^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6027634Z ^[[36;1mdf -h . | tail -2^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6329172Z shell: /usr/bin/bash -e {0}
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6329766Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6446926Z model name	: AMD EPYC 7763 64-Core Processor
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6567960Z 4
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6586052Z                total        used        free      shared  buff/cache   available
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6587103Z Mem:              15           1          11           0           3          14
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6688751Z Filesystem      Size  Used Avail Use% Mounted on
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6689348Z /dev/root       145G   60G   85G  42% /
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6730618Z ##[group]Run sudo apt-get update -qq
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6731029Z ^[[36;1msudo apt-get update -qq^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6731440Z ^[[36;1msudo apt-get install -y -qq zlib1g-dev xz-utils^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6794935Z shell: /usr/bin/bash -e {0}
+shard 5	UNKNOWN STEP	2026-10-18T15:49:10.6795257Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4302963Z ##[group]Run python3 - <<'PY'
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4303552Z ^[[36;1mpython3 - <<'PY'^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4303811Z ^[[36;1mimport json^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4304109Z ^[[36;1mp = json.load(open("fullsets_isoB.json"))["5"]^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4304463Z ^[[36;1mprint("category :", p["category"])^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4304774Z ^[[36;1mprint("traces   :", len(p["traces"]))^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4305155Z ^[[36;1mprint("gdrive   :", p["gdrive_id"], "~%.2f GB" % p["size_gb"])^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4305525Z ^[[36;1mprint(", ".join(p["traces"]))^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4305798Z ^[[36;1mPY^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4370979Z shell: /usr/bin/bash -e {0}
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4371271Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4648686Z category : compress
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4649320Z traces   : 8
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4649755Z gdrive   : 1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_ ~1.37 GB
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4650959Z compress_0_trace, compress_1_trace, compress_2_trace, compress_3_trace, compress_4_trace, compress_5_trace, compress_6_trace, compress_7_trace
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4725643Z ##[group]Run set -uo pipefail
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4726003Z ^[[36;1mset -uo pipefail^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4726321Z ^[[36;1mpython3 scripts/run_fullset_cfg.py \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4726650Z ^[[36;1m  --shard "5" \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4726916Z ^[[36;1m  --configs isoB_49in_53cl \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4727213Z ^[[36;1m  --plan fullsets_isoB.json \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4727496Z ^[[36;1m  --parallel 4 \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4727753Z ^[[36;1m  --traces-dir traces \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4728017Z ^[[36;1m  --logs-dir logs \^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4728264Z ^[[36;1m  --out-dir isoB_results^[[0m
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4793936Z shell: /usr/bin/bash -e {0}
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.4794235Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5261129Z ===== shard 5: category compress, 8 traces =====
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5261802Z       configs: ['isoB_49in_53cl']
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5262758Z       compress_0_trace, compress_1_trace, compress_2_trace, compress_3_trace, compress_4_trace, compress_5_trace, compress_6_trace, compress_7_trace
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5263833Z + df -h . | tail -2
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5280502Z Filesystem      Size  Used Avail Use% Mounted on
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5282619Z /dev/root       145G   60G   85G  42% /
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5282926Z + nproc; free -g | head -2
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5296169Z 4
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5313824Z                total        used        free      shared  buff/cache   available
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5314707Z Mem:              15           1          10           0           3          14
+shard 5	UNKNOWN STEP	2026-10-18T15:49:15.5318062Z + set -o pipefail; curl -sSL --retry 3 --retry-delay 5 "https://drive.usercontent.google.com/download?id=1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_&export=download&confirm=t" | tar -xJ -C traces
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.5576902Z xz: (stdin): File format not recognized
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.5585137Z tar: Child died with signal 13
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.5585599Z tar: Error is not recoverable: exiting now
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.5590078Z curl: (23) Failure writing output to destination
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6504757Z Traceback (most recent call last):
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6506055Z   File "/home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep/scripts/run_fullset_cfg.py", line 154, in <module>
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6507846Z     sys.exit(main())
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6508334Z              ^^^^^^
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6509308Z   File "/home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep/scripts/run_fullset_cfg.py", line 93, in main
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6510664Z     subprocess.run(cmd, shell=True, check=True, executable="/bin/bash")
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6511738Z   File "/usr/lib/python3.12/subprocess.py", line 571, in run
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6515213Z     raise CalledProcessError(retcode, process.args,
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6516600Z subprocess.CalledProcessError: Command 'set -o pipefail; curl -sSL --retry 3 --retry-delay 5 "https://drive.usercontent.google.com/download?id=1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_&export=download&confirm=t" | tar -xJ -C traces' returned non-zero exit status 2.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6661949Z ##[error]Process completed with exit code 1.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6742768Z ##[group]Run actions/upload-artifact@v4
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6743443Z with:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6743668Z   name: isoB-5
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6743894Z   path: isoB_results/
+shard 5	UNKNOWN STEP	logs/
+shard 5	UNKNOWN STEP	
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6744149Z   retention-days: 14
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6744375Z   if-no-files-found: warn
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6744616Z   compression-level: 6
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6744836Z   overwrite: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6745073Z   include-hidden-files: false
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.6745328Z ##[endgroup]
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8388031Z (node:2660) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8389342Z (Use `node --trace-deprecation ...` to show where the warning was created)
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8462334Z Multiple search paths detected. Calculating the least common ancestor of all paths
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8465268Z The least common ancestor is /home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep. This will be the root directory of the artifact
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8466534Z With the provided path, there will be 8 files uploaded
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8473841Z Artifact name is valid!
+shard 5	UNKNOWN STEP	2026-10-18T15:49:51.8474364Z Root directory input is valid!
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.0624803Z Beginning upload of artifact content to blob storage
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.0954385Z (node:2660) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.1219212Z Uploaded bytes 9578
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.1356380Z Finished uploading artifact content to blob storage!
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.1357409Z SHA256 digest of uploaded artifact zip is 815d65bd29262cb0e3594b49a1a91ad9acfff8c5fe662ee8d8f59a07499e5940
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.1359399Z Finalizing artifact upload
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.3605023Z Artifact isoB-5.zip successfully finalized. Artifact ID 12141957508
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.3605879Z Artifact isoB-5 has been successfully uploaded! Final size is 9578 bytes. Artifact ID is 12141957508
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.3611502Z Artifact download URL: https://github.com/tubigbe/tm-cbp-gha-sweep/actions/runs/39142060395/artifacts/12141957508
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.3826388Z Post job cleanup.
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4653940Z [command]/usr/bin/git version
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4696893Z git version 2.55.0
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4738512Z Temporarily overriding HOME='/home/runner/work/_temp/81497b8d-4a94-4695-8b13-9a8684f33fe7' before making global git config changes
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4739883Z Adding repository directory to the temporary git global config as a safe directory
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4744514Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/tm-cbp-gha-sweep/tm-cbp-gha-sweep
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4786942Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.4828190Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5113512Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5143820Z http.https://github.com/.extraheader
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5156436Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5193015Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5459994Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5504484Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.5908318Z Cleaning up orphan processes
+shard 5	UNKNOWN STEP	2026-10-18T15:49:52.6216593Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	﻿2026-10-18T16:42:20.9811512Z ##[group]Run set -euo pipefail
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9811988Z ^[[36;1mset -euo pipefail^[[0m
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9812510Z ^[[36;1mpython3 scripts/pack_logs.py --src collected --out isoB_results/logs \^[[0m
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9813309Z ^[[36;1m  --expect 105 --expect-csv 'isoB_results/shard-*.csv'^[[0m
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9813801Z ^[[36;1mls -la isoB_results/logs/ | head -5^[[0m
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9814348Z ^[[36;1mgzip -dc isoB_results/logs/*.gz | grep -cE '^Measured # of instructions'^[[0m
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9880423Z shell: /usr/bin/bash -e {0}
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:20.9880805Z ##[endgroup]
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1578403Z   packed isoB_49in_53cl__fp_0_trace.log.gz                            11967 ->   3277 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1580211Z   packed isoB_49in_53cl__fp_10_trace.log.gz                           13376 ->   3820 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1581443Z   packed isoB_49in_53cl__fp_11_trace.log.gz                           13378 ->   3865 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1582647Z   packed isoB_49in_53cl__fp_12_trace.log.gz                           13341 ->   3809 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1583953Z   packed isoB_49in_53cl__fp_13_trace.log.gz                           13364 ->   3934 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1584990Z   packed isoB_49in_53cl__fp_1_trace.log.gz                            11964 ->   3332 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1585772Z   packed isoB_49in_53cl__fp_2_trace.log.gz                            11960 ->   3428 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1586532Z   packed isoB_49in_53cl__fp_3_trace.log.gz                            11955 ->   3368 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1587292Z   packed isoB_49in_53cl__fp_4_trace.log.gz                            11968 ->   3426 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1588069Z   packed isoB_49in_53cl__fp_5_trace.log.gz                            13366 ->   3809 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1588992Z   packed isoB_49in_53cl__fp_6_trace.log.gz                            13370 ->   3905 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1589763Z   packed isoB_49in_53cl__fp_7_trace.log.gz                            13363 ->   3862 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1590520Z   packed isoB_49in_53cl__fp_8_trace.log.gz                            13382 ->   3887 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1591293Z   packed isoB_49in_53cl__fp_9_trace.log.gz                            13371 ->   3985 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1592066Z   packed isoB_49in_53cl__infra_0_trace.log.gz                         13372 ->   3837 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1592845Z   packed isoB_49in_53cl__infra_10_trace.log.gz                        14774 ->   4220 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1593615Z   packed isoB_49in_53cl__infra_11_trace.log.gz                        14778 ->   4334 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1594381Z   packed isoB_49in_53cl__infra_12_trace.log.gz                        14779 ->   4320 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1595161Z   packed isoB_49in_53cl__infra_13_trace.log.gz                        14772 ->   4244 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1595846Z   packed isoB_49in_53cl__infra_14_trace.log.gz                        14774 ->   4230 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1596462Z   packed isoB_49in_53cl__infra_15_trace.log.gz                        14773 ->   4322 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1597080Z   packed isoB_49in_53cl__infra_1_trace.log.gz                         12932 ->   3546 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1597705Z   packed isoB_49in_53cl__infra_2_trace.log.gz                         14366 ->   3803 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1598365Z   packed isoB_49in_53cl__infra_3_trace.log.gz                         13371 ->   3809 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1599190Z   packed isoB_49in_53cl__infra_4_trace.log.gz                         13376 ->   3878 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1599836Z   packed isoB_49in_53cl__infra_5_trace.log.gz                         13378 ->   3842 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1600471Z   packed isoB_49in_53cl__infra_6_trace.log.gz                         16734 ->   5025 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1601097Z   packed isoB_49in_53cl__infra_7_trace.log.gz                         13380 ->   3867 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1601726Z   packed isoB_49in_53cl__infra_8_trace.log.gz                         13377 ->   3619 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1602395Z   packed isoB_49in_53cl__infra_9_trace.log.gz                         14782 ->   4375 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1603428Z   packed isoB_49in_53cl__int_0_trace.log.gz                           13370 ->   3941 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1604091Z   packed isoB_49in_53cl__int_10_trace.log.gz                          16166 ->   4651 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1604885Z   packed isoB_49in_53cl__int_11_trace.log.gz                          16163 ->   4702 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1605515Z   packed isoB_49in_53cl__int_12_trace.log.gz                          16025 ->   4303 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1606148Z   packed isoB_49in_53cl__int_13_trace.log.gz                          13347 ->   3865 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1606804Z   packed isoB_49in_53cl__int_14_trace.log.gz                          13209 ->   3724 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1607418Z   packed isoB_49in_53cl__int_15_trace.log.gz                          17580 ->   4732 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1608055Z   packed isoB_49in_53cl__int_16_trace.log.gz                          13371 ->   4004 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1608827Z   packed isoB_49in_53cl__int_17_trace.log.gz                          13214 ->   3981 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1609459Z   packed isoB_49in_53cl__int_18_trace.log.gz                          13227 ->   3889 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1610083Z   packed isoB_49in_53cl__int_19_trace.log.gz                          13358 ->   3877 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1610691Z   packed isoB_49in_53cl__int_1_trace.log.gz                           11959 ->   3396 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1611303Z   packed isoB_49in_53cl__int_20_trace.log.gz                          16184 ->   4929 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1611936Z   packed isoB_49in_53cl__int_21_trace.log.gz                          13380 ->   3903 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1612551Z   packed isoB_49in_53cl__int_22_trace.log.gz                          13382 ->   3961 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1613162Z   packed isoB_49in_53cl__int_23_trace.log.gz                          13374 ->   3846 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1613769Z   packed isoB_49in_53cl__int_24_trace.log.gz                          13370 ->   3899 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1614380Z   packed isoB_49in_53cl__int_25_trace.log.gz                          13368 ->   3876 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1615015Z   packed isoB_49in_53cl__int_26_trace.log.gz                          13362 ->   3905 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1615637Z   packed isoB_49in_53cl__int_27_trace.log.gz                          13364 ->   3879 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1616251Z   packed isoB_49in_53cl__int_28_trace.log.gz                          13348 ->   3837 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1616872Z   packed isoB_49in_53cl__int_29_trace.log.gz                          13359 ->   3809 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1617487Z   packed isoB_49in_53cl__int_2_trace.log.gz                           11959 ->   3387 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1618102Z   packed isoB_49in_53cl__int_30_trace.log.gz                          13356 ->   3798 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1619018Z   packed isoB_49in_53cl__int_31_trace.log.gz                          13346 ->   3819 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1620207Z   packed isoB_49in_53cl__int_32_trace.log.gz                          23211 ->   7168 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1621295Z   packed isoB_49in_53cl__int_33_trace.log.gz                          23213 ->   7462 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1622467Z   packed isoB_49in_53cl__int_34_trace.log.gz                          13359 ->   3996 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1623512Z   packed isoB_49in_53cl__int_35_trace.log.gz                          13359 ->   3905 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1624144Z   packed isoB_49in_53cl__int_36_trace.log.gz                          15198 ->   4676 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1624764Z   packed isoB_49in_53cl__int_3_trace.log.gz                           13370 ->   3879 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1625386Z   packed isoB_49in_53cl__int_4_trace.log.gz                           16028 ->   4756 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1626024Z   packed isoB_49in_53cl__int_5_trace.log.gz                           11960 ->   3332 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1626642Z   packed isoB_49in_53cl__int_6_trace.log.gz                           11958 ->   3340 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1627254Z   packed isoB_49in_53cl__int_7_trace.log.gz                           13369 ->   4024 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1628118Z   packed isoB_49in_53cl__int_8_trace.log.gz                           13366 ->   3996 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1628972Z   packed isoB_49in_53cl__int_9_trace.log.gz                           13359 ->   3968 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1629858Z   packed isoB_49in_53cl__media_0_trace.log.gz                         10542 ->   2825 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1630506Z   packed isoB_49in_53cl__media_1_trace.log.gz                         10549 ->   2874 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1631133Z   packed isoB_49in_53cl__media_2_trace.log.gz                         10543 ->   2817 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1631749Z   packed isoB_49in_53cl__media_3_trace.log.gz                         10542 ->   2837 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1632368Z   packed isoB_49in_53cl__web_0_trace.log.gz                           13219 ->   3951 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1632987Z   packed isoB_49in_53cl__web_10_trace.log.gz                          10400 ->   2876 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1633596Z   packed isoB_49in_53cl__web_11_trace.log.gz                           9147 ->   2420 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1634214Z   packed isoB_49in_53cl__web_12_trace.log.gz                           9847 ->   2743 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1634840Z   packed isoB_49in_53cl__web_13_trace.log.gz                          13224 ->   3994 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1635453Z   packed isoB_49in_53cl__web_14_trace.log.gz                          17585 ->   5264 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1636062Z   packed isoB_49in_53cl__web_15_trace.log.gz                           9696 ->   2716 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1636673Z   packed isoB_49in_53cl__web_16_trace.log.gz                          10559 ->   2825 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1637282Z   packed isoB_49in_53cl__web_17_trace.log.gz                           9843 ->   2694 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1637891Z   packed isoB_49in_53cl__web_18_trace.log.gz                           9835 ->   2662 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1638503Z   packed isoB_49in_53cl__web_19_trace.log.gz                           9851 ->   2751 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1639314Z   packed isoB_49in_53cl__web_1_trace.log.gz                           13215 ->   3978 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1639941Z   packed isoB_49in_53cl__web_20_trace.log.gz                          10550 ->   2917 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1640558Z   packed isoB_49in_53cl__web_21_trace.log.gz                           9844 ->   2734 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1641177Z   packed isoB_49in_53cl__web_22_trace.log.gz                          10546 ->   2871 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1641798Z   packed isoB_49in_53cl__web_23_trace.log.gz                          10554 ->   2872 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1642411Z   packed isoB_49in_53cl__web_24_trace.log.gz                           9689 ->   2681 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1643025Z   packed isoB_49in_53cl__web_25_trace.log.gz                           9691 ->   2701 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1643636Z   packed isoB_49in_53cl__web_2_trace.log.gz                           13214 ->   3978 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1644246Z   packed isoB_49in_53cl__web_3_trace.log.gz                           13211 ->   3967 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1644860Z   packed isoB_49in_53cl__web_4_trace.log.gz                           13216 ->   3950 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1645485Z   packed isoB_49in_53cl__web_5_trace.log.gz                           13211 ->   3952 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1646152Z   packed isoB_49in_53cl__web_6_trace.log.gz                           13367 ->   3995 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1646764Z   packed isoB_49in_53cl__web_7_trace.log.gz                           13205 ->   3920 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1647377Z   packed isoB_49in_53cl__web_8_trace.log.gz                           13212 ->   3954 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1647985Z   packed isoB_49in_53cl__web_9_trace.log.gz                           13214 ->   3437 B
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1648566Z pack_logs: 97 log(s), 1281055 -> 369549 bytes, out=isoB_results/logs
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1669512Z ##[error]pack_logs: expected 105 log(s), got 97 - incomplete collect
+collect + commit results	pack per-trace raw stdout (must come back with the CSV)	2026-10-18T16:42:21.1684390Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,125 @@
+=== source collected_b ===
+        1772  isoB_results/shard-00-int.csv
+        1862  isoB_results/shard-01-int.csv
+        2498  isoB_results/shard-02-web.csv
+        1604  isoB_results/shard-03-infra.csv
+        1375  isoB_results/shard-04-fp.csv
+         884  isoB_results/shard-05-compress.csv
+         471  isoB_results/shard-06-media.csv
+       24621  logs/isoB_49in_53cl__compress_0_trace.log
+       11961  logs/isoB_49in_53cl__compress_1_trace.log
+       12234  logs/isoB_49in_53cl__compress_2_trace.log
+       26028  logs/isoB_49in_53cl__compress_3_trace.log
+       12098  logs/isoB_49in_53cl__compress_4_trace.log
+       12371  logs/isoB_49in_53cl__compress_5_trace.log
+       12372  logs/isoB_49in_53cl__compress_6_trace.log
+       26032  logs/isoB_49in_53cl__compress_7_trace.log
+       11967  logs/isoB_49in_53cl__fp_0_trace.log
+       13376  logs/isoB_49in_53cl__fp_10_trace.log
+       13378  logs/isoB_49in_53cl__fp_11_trace.log
+       13341  logs/isoB_49in_53cl__fp_12_trace.log
+       13364  logs/isoB_49in_53cl__fp_13_trace.log
+       11964  logs/isoB_49in_53cl__fp_1_trace.log
+       11960  logs/isoB_49in_53cl__fp_2_trace.log
+       11955  logs/isoB_49in_53cl__fp_3_trace.log
+       11968  logs/isoB_49in_53cl__fp_4_trace.log
+       13366  logs/isoB_49in_53cl__fp_5_trace.log
+       13370  logs/isoB_49in_53cl__fp_6_trace.log
+       13363  logs/isoB_49in_53cl__fp_7_trace.log
+       13382  logs/isoB_49in_53cl__fp_8_trace.log
+       13371  logs/isoB_49in_53cl__fp_9_trace.log
+       13372  logs/isoB_49in_53cl__infra_0_trace.log
+       14774  logs/isoB_49in_53cl__infra_10_trace.log
+       14778  logs/isoB_49in_53cl__infra_11_trace.log
+       14779  logs/isoB_49in_53cl__infra_12_trace.log
+       14772  logs/isoB_49in_53cl__infra_13_trace.log
+       14774  logs/isoB_49in_53cl__infra_14_trace.log
+       14773  logs/isoB_49in_53cl__infra_15_trace.log
+       12932  logs/isoB_49in_53cl__infra_1_trace.log
+       14366  logs/isoB_49in_53cl__infra_2_trace.log
+       13371  logs/isoB_49in_53cl__infra_3_trace.log
+       13376  logs/isoB_49in_53cl__infra_4_trace.log
+       13378  logs/isoB_49in_53cl__infra_5_trace.log
+       16734  logs/isoB_49in_53cl__infra_6_trace.log
+       13380  logs/isoB_49in_53cl__infra_7_trace.log
+       13377  logs/isoB_49in_53cl__infra_8_trace.log
+       14782  logs/isoB_49in_53cl__infra_9_trace.log
+       13370  logs/isoB_49in_53cl__int_0_trace.log
+       16166  logs/isoB_49in_53cl__int_10_trace.log
+       16163  logs/isoB_49in_53cl__int_11_trace.log
+       16025  logs/isoB_49in_53cl__int_12_trace.log
+       13347  logs/isoB_49in_53cl__int_13_trace.log
+       13209  logs/isoB_49in_53cl__int_14_trace.log
+       17580  logs/isoB_49in_53cl__int_15_trace.log
+       13371  logs/isoB_49in_53cl__int_16_trace.log
+       13214  logs/isoB_49in_53cl__int_17_trace.log
+       13227  logs/isoB_49in_53cl__int_18_trace.log
+       13358  logs/isoB_49in_53cl__int_19_trace.log
+       11959  logs/isoB_49in_53cl__int_1_trace.log
+       16184  logs/isoB_49in_53cl__int_20_trace.log
+       13380  logs/isoB_49in_53cl__int_21_trace.log
+       13382  logs/isoB_49in_53cl__int_22_trace.log
+       13374  logs/isoB_49in_53cl__int_23_trace.log
+       13370  logs/isoB_49in_53cl__int_24_trace.log
+       13368  logs/isoB_49in_53cl__int_25_trace.log
+       13362  logs/isoB_49in_53cl__int_26_trace.log
+       13364  logs/isoB_49in_53cl__int_27_trace.log
+       13348  logs/isoB_49in_53cl__int_28_trace.log
+       13359  logs/isoB_49in_53cl__int_29_trace.log
+       11959  logs/isoB_49in_53cl__int_2_trace.log
+       13356  logs/isoB_49in_53cl__int_30_trace.log
+       13346  logs/isoB_49in_53cl__int_31_trace.log
+       23211  logs/isoB_49in_53cl__int_32_trace.log
+       23213  logs/isoB_49in_53cl__int_33_trace.log
+       13359  logs/isoB_49in_53cl__int_34_trace.log
+       13359  logs/isoB_49in_53cl__int_35_trace.log
+       15198  logs/isoB_49in_53cl__int_36_trace.log
+       13370  logs/isoB_49in_53cl__int_3_trace.log
+       16028  logs/isoB_49in_53cl__int_4_trace.log
+       11960  logs/isoB_49in_53cl__int_5_trace.log
+       11958  logs/isoB_49in_53cl__int_6_trace.log
+       13369  logs/isoB_49in_53cl__int_7_trace.log
+       13366  logs/isoB_49in_53cl__int_8_trace.log
+       13359  logs/isoB_49in_53cl__int_9_trace.log
+       10542  logs/isoB_49in_53cl__media_0_trace.log
+       10549  logs/isoB_49in_53cl__media_1_trace.log
+       10543  logs/isoB_49in_53cl__media_2_trace.log
+       10542  logs/isoB_49in_53cl__media_3_trace.log
+       13219  logs/isoB_49in_53cl__web_0_trace.log
+       10400  logs/isoB_49in_53cl__web_10_trace.log
+        9147  logs/isoB_49in_53cl__web_11_trace.log
+        9847  logs/isoB_49in_53cl__web_12_trace.log
+       13224  logs/isoB_49in_53cl__web_13_trace.log
+       17585  logs/isoB_49in_53cl__web_14_trace.log
+        9696  logs/isoB_49in_53cl__web_15_trace.log
+       10559  logs/isoB_49in_53cl__web_16_trace.log
+        9843  logs/isoB_49in_53cl__web_17_trace.log
+        9835  logs/isoB_49in_53cl__web_18_trace.log
+        9851  logs/isoB_49in_53cl__web_19_trace.log
+       13215  logs/isoB_49in_53cl__web_1_trace.log
+       10550  logs/isoB_49in_53cl__web_20_trace.log
+        9844  logs/isoB_49in_53cl__web_21_trace.log
+       10546  logs/isoB_49in_53cl__web_22_trace.log
+       10554  logs/isoB_49in_53cl__web_23_trace.log
+        9689  logs/isoB_49in_53cl__web_24_trace.log
+        9691  logs/isoB_49in_53cl__web_25_trace.log
+       13214  logs/isoB_49in_53cl__web_2_trace.log
+       13211  logs/isoB_49in_53cl__web_3_trace.log
+       13216  logs/isoB_49in_53cl__web_4_trace.log
+       13211  logs/isoB_49in_53cl__web_5_trace.log
+       13367  logs/isoB_49in_53cl__web_6_trace.log
+       13205  logs/isoB_49in_53cl__web_7_trace.log
+       13212  logs/isoB_49in_53cl__web_8_trace.log
+       13214  logs/isoB_49in_53cl__web_9_trace.log
+  (112 file(s))
+--- CSVs: 7 file(s), 105 data row(s) ---
+     18 rows  shard-00-int.csv
+     19 rows  shard-01-int.csv
+     26 rows  shard-02-web.csv
+     16 rows  shard-03-infra.csv
+     14 rows  shard-04-fp.csv
+      8 rows  shard-05-compress.csv
+      4 rows  shard-06-media.csv
+--- raw stdout: 105 log(s), 1418772 -> 410681 bytes in isoB_results/logs ---
+--- logs carrying 'instructions' + 'GShare wrong': 105 ---
+--- VERDICT: COMPLETE (files seen 112) ---
