@@ -1,0 +1,21 @@
+{
+  "experiment": "literal dynamics of the A baseline (81 inputs / 32 clauses / T=6) on the T6 six traces",
+  "baseline_commit": "068f816",
+  "baseline_tm_cc_blob": "73121418eec9197448cad8351cfcb83e613efff3",
+  "baseline_tm_cc_sha256": "a2888eef44e13c23db37369020cdaa1c98441f555efa7e970a630ef637b7fd13",
+  "variant": "literal_stats_A",
+  "variant_sha256": "ae4de655078a2674742c0ac3e3e50d58eba286c6437881b1b3b23b58144278ad",
+  "variant_note": "byte-identical to ku:/data/tm_cbp_sim/literal_dynamics/TM_literal.cc; generated from 068f816:tm.cc by gen_literal.py (7 splices, round-trip verified)",
+  "trace_set": "T6 (same six traces as t6sets.json)",
+  "invocation": "./cbp -E 1000000 <trace>",
+  "stats_env": "TM_LITERAL_OUT=<prefix>  (writes <prefix>_clause_snapshots.csv and <prefix>_literal_duty.csv)",
+  "expect_note": "expect_tm_mpki is the published T6 baseline string; the gate is STRING equality (bit-identity), not a tolerance",
+  "shards": {
+    "0": {"trace": "int_1_trace", "category": "int", "tarball": "int.tar.xz", "size_gb": 4.73, "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi", "expect_tm_mpki": "26.091", "est_shard_sec": 700},
+    "1": {"trace": "fp_4_trace", "category": "fp", "tarball": "fp.tar.xz", "size_gb": 1.82, "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3", "expect_tm_mpki": "4.19113", "est_shard_sec": 700},
+    "2": {"trace": "web_11_trace", "category": "web", "tarball": "web.tar.xz", "size_gb": 1.89, "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf", "expect_tm_mpki": "18.1577", "est_shard_sec": 700},
+    "3": {"trace": "media_3_trace", "category": "media", "tarball": "media.tar.xz", "size_gb": 0.38, "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n", "expect_tm_mpki": "7.44238", "est_shard_sec": 700},
+    "4": {"trace": "compress_4_trace", "category": "compress", "tarball": "compress.tar.xz", "size_gb": 1.37, "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_", "expect_tm_mpki": "3.99088", "est_shard_sec": 700},
+    "5": {"trace": "infra_14_trace", "category": "infra", "tarball": "infra.tar.xz", "size_gb": 1.49, "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj", "expect_tm_mpki": "10.8152", "est_shard_sec": 700}
+  }
+}
