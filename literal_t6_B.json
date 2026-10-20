@@ -1,0 +1,21 @@
+{
+  "experiment": "literal dynamics of the B variant (isoB_49in_53cl) on the T6 six traces",
+  "variant": "literal_stats_B",
+  "variant_note": "instrumented copy of the 10-16 B tree; byte-identical to ku:/data/tm_cbp_sim/literal_dynamics/TM_literal_B.cc",
+  "variant_sha256": "227c71c2f2c73eaf775a1e6655479a4d1c697618203e46d77ca313ac151d65be",
+  "pristine_source": "variants/isoB_49in_53cl (tm.cc sha256 c48173b632621db22f66ef59acf95366a985aa73e45929508d9eae6aa942b8c3, tm.h 6091623b..., tm_predictor.cc 58225a92..., tm_predictor.h 340e4cc1...)",
+  "config": {"NUM_INPUTS": 49, "NUM_CLAUSES": 53, "THRESHOLD": 10, "TM_PATH_BRANCHES": 0},
+  "num_clauses": 53,
+  "duty_lines": 50,
+  "expect_source": "isoB_results/ALL.csv (the 2026-10-16 B full-set run over the same 105 traces; T6 traces are members of that set)",
+  "invocation": "./cbp -E 1000000 <trace>",
+  "stats_env": "TM_LITERAL_OUT=<prefix>",
+  "shards": {
+    "0": {"trace": "int_1_trace", "category": "int", "tarball": "int.tar.xz", "size_gb": 4.73, "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi", "expect_tm_mpki": "24.8594"},
+    "1": {"trace": "fp_4_trace", "category": "fp", "tarball": "fp.tar.xz", "size_gb": 1.82, "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3", "expect_tm_mpki": "4.30826"},
+    "2": {"trace": "web_11_trace", "category": "web", "tarball": "web.tar.xz", "size_gb": 1.89, "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf", "expect_tm_mpki": "17.1843"},
+    "3": {"trace": "media_3_trace", "category": "media", "tarball": "media.tar.xz", "size_gb": 0.38, "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n", "expect_tm_mpki": "7.10793"},
+    "4": {"trace": "compress_4_trace", "category": "compress", "tarball": "compress.tar.xz", "size_gb": 1.37, "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_", "expect_tm_mpki": "3.87394"},
+    "5": {"trace": "infra_14_trace", "category": "infra", "tarball": "infra.tar.xz", "size_gb": 1.49, "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj", "expect_tm_mpki": "10.312"}
+  }
+}

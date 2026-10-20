@@ -1,0 +1,299 @@
+name: Literal dynamics B (isoB 49/53/T=10, T6)
+
+# WHY THIS EXISTS
+# Second batch of the literal-dynamics experiment (first batch = A, 81/32/T=6).
+# Question: does the stronger configuration (49 inputs / 53 clauses / THRESHOLD 10,
+# TM_PATH_BRANCHES 0) churn LESS than A? Same observer, same T6 six traces, same
+# per-shard bit-identity gate (against the 2026-10-16 B full-set values).
+#
+# New files only: the A batch's workflow/plan/variant are untouched, so this push
+# cannot re-trigger the A batch.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'literal_t6_B.json'
+      - 'scripts/run_literal_shard_b.py'
+      - 'variants/literal_stats_B/**'
+      - '.github/workflows/literalstats_B.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  VARIANT: literal_stats_B
+
+jobs:
+  gate:
+    name: build + inertness + stats-wiring gates (B)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: gate 1 - pristine B tree (the 10-16 config) smoke reference
+        run: |
+          set -uo pipefail
+          for fn in tm.cc tm.h tm_predictor.cc tm_predictor.h; do
+            cp "variants/isoB_49in_53cl/$fn" "$fn"
+          done
+          make clean >/dev/null 2>&1 || true
+          make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g1b.txt
+          grep -E '^(TM wrong|TM right|TM accuracy|TM MPKI|Measured # of instructions):' g1a.txt > g1a.key
+          grep -E '^(TM wrong|TM right|TM accuracy|TM MPKI|Measured # of instructions):' g1b.txt > g1b.key
+          echo "  pristine B (49/53/T=10) smoke int key lines:"
+          sed -n '1,10p' g1a.key
+
+      - name: gate 2 - instrumented B must be behaviourally inert
+        run: |
+          set -uo pipefail
+          sha256sum "variants/${VARIANT}/tm.cc"
+          for fn in tm.cc tm.h tm_predictor.cc tm_predictor.h; do
+            cp "variants/${VARIANT}/$fn" "$fn"
+          done
+          rm -f *.o cbp
+          make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g2b.txt
+          grep -E '^(TM wrong|TM right|TM accuracy|TM MPKI|Measured # of instructions):' g2a.txt > g2a.key
+          grep -E '^(TM wrong|TM right|TM accuracy|TM MPKI|Measured # of instructions):' g2b.txt > g2b.key
+          diff g1a.key g2a.key || { echo "::error::instrumentation changed int behaviour"; exit 1; }
+          diff g1b.key g2b.key || { echo "::error::instrumentation changed fp behaviour"; exit 1; }
+          echo "GATE 2 OK: instrumented B is inert on both smoke traces"
+
+      - name: gate 3 - TM_LITERAL_OUT writes both CSVs (B layout, 50 duty lines and 53 clauses)
+        run: |
+          set -uo pipefail
+          rm -rf gate_stats
+          mkdir -p gate_stats
+          TM_LITERAL_OUT=gate_stats/gate_smoke ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz > g3.txt
+          test -s gate_stats/gate_smoke_clause_snapshots.csv || { echo "::error::snapshot CSV missing"; exit 1; }
+          test -s gate_stats/gate_smoke_literal_duty.csv     || { echo "::error::duty CSV missing"; exit 1; }
+          duty_lines=$(wc -l < gate_stats/gate_smoke_literal_duty.csv)
+          echo "  duty lines: $duty_lines (expect 50)"
+          test "$duty_lines" -eq 50 || { echo "::error::duty row count wrong"; exit 1; }
+          clauses=$(tail -n +2 gate_stats/gate_smoke_clause_snapshots.csv | cut -d, -f4 | sort -u | wc -l)
+          echo "  clauses seen: $clauses (expect 53)"
+          test "$clauses" -eq 53 || { echo "::error::clause count wrong"; exit 1; }
+          echo "GATE 3 OK"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: literalB-gate
+          path: |
+            g1a.txt
+            g1b.txt
+            g2a.txt
+            g2b.txt
+            g3.txt
+          retention-days: 14
+
+  literal:
+    name: B shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | sed -n '1,2p'
+          df -h . | sed -n '1,2p'
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: run this shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_literal_shard_b.py \
+            --shard "${{ matrix.shard }}" \
+            --plan literal_t6_B.json \
+            --variant "${VARIANT}" \
+            --traces-dir traces \
+            --logs-dir logs \
+            --stats-dir literal_stats_b \
+            --out-dir literal_results_b
+
+      - name: upload results, stats and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: literalB-${{ matrix.shard }}
+          path: |
+            literal_results_b/
+            literal_stats_b/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + package + commit (B)
+    needs: literal
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'literalB-*'
+          merge-multiple: true
+          path: collected
+
+      - name: assemble, pack, MANIFEST
+        run: |
+          set -uo pipefail
+          find collected -type f | sort > /tmp/inventory.txt
+          echo "collected files: $(wc -l < /tmp/inventory.txt)"
+          sed -n '1,30p' /tmp/inventory.txt
+          python3 - <<'PY'
+          import csv, glob, gzip, hashlib, json, os
+
+          VARIANT = os.environ.get("VARIANT", "literal_stats_B")
+          OUT = "literal_results_b"
+          os.makedirs(OUT, exist_ok=True)
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with open(path, "rb") as fh:
+                  for chunk in iter(lambda: fh.read(1 << 20), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          plan = json.load(open("literal_t6_B.json"))
+          expect = {v["trace"]: v["expect_tm_mpki"] for v in plan["shards"].values()}
+
+          rows = []
+          for f in sorted(glob.glob("collected/literal_results_b/shard-*.csv")):
+              rows += list(csv.DictReader(open(f)))
+          cols = ["variant", "trace", "seconds", "rc", "TM MPKI", "TM accuracy",
+                  "TM right", "TM wrong", "GShare MPKI", "GShare accuracy",
+                  "TAGE MPKI", "instructions", "GShare wrong", "resolved_updates",
+                  "stats_prefix"]
+          with open(os.path.join(OUT, "ALL.csv"), "w", newline="") as fh:
+              w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+              w.writeheader()
+              for r in rows:
+                  w.writerow(r)
+          print("ALL.csv rows:", len(rows))
+
+          packed = []
+          stats_dir = os.path.join(OUT, "literal_stats")
+          logs_dir = os.path.join(OUT, "logs")
+          for d in (stats_dir, logs_dir):
+              os.makedirs(d, exist_ok=True)
+          for src_dir, dst_dir, pat in (("collected/literal_stats_b", stats_dir, "*.csv"),
+                                        ("collected/logs", logs_dir, "*.log")):
+              if not os.path.isdir(src_dir):
+                  print("!! missing", src_dir)
+                  continue
+              for p in sorted(glob.glob(os.path.join(src_dir, pat))):
+                  base = os.path.basename(p)
+                  data = open(p, "rb").read()
+                  h = hashlib.sha256(data).hexdigest()
+                  dst = os.path.join(dst_dir, base + ".gz")
+                  with gzip.open(dst, "wb", compresslevel=9) as fh:
+                      fh.write(data)
+                  packed.append("%s  %d  %s" % (h, len(data), os.path.relpath(dst, OUT)))
+
+          problems = []
+          for r in rows:
+              t = r["trace"]
+              if r.get("TM MPKI") != expect.get(t):
+                  problems.append("%s: MPKI %s != locked 10-16 B value %s"
+                                  % (t, r.get("TM MPKI"), expect.get(t)))
+              for s in ("_clause_snapshots.csv.gz", "_literal_duty.csv.gz"):
+                  f = os.path.join(stats_dir, "%s__%s%s" % (VARIANT, t, s))
+                  if not os.path.exists(f):
+                      problems.append("%s: missing %s" % (t, os.path.basename(f)))
+              lg = os.path.join(logs_dir, "%s__%s.log.gz" % (VARIANT, t))
+              if not os.path.exists(lg):
+                  problems.append("%s: missing raw stdout" % t)
+
+          lines = ["# literal dynamics B (T6) - MANIFEST", "",
+                   "- variant: %s (sha256 %s)" % (VARIANT, plan.get("variant_sha256", "")),
+                   "- config: %s" % json.dumps(plan.get("config", {})),
+                   "- pristine source: %s" % plan.get("pristine_source", ""),
+                   "- expected values: %s" % plan.get("expect_source", ""),
+                   "- invocation: ./cbp -E 1000000 <trace> with TM_LITERAL_OUT=<prefix>",
+                   "- snapshot cadence: every 100k resolved branches, both phases; plus one final post snapshot",
+                   "- duty table: total = resolved_updates * 53 (one slot per clause per update)",
+                   "",
+                   "| trace | TM MPKI | expected (10-16 B) | accuracy | instructions | resolved_updates |",
+                   "|---|---:|---:|---:|---:|---:|"]
+          for t in sorted({r["trace"] for r in rows}):
+              r = [x for x in rows if x["trace"] == t][0]
+              lines.append("| %s | %s | %s | %s | %s | %s |"
+                           % (t, r.get("TM MPKI"), expect.get(t), r.get("TM accuracy"),
+                              r.get("instructions"), r.get("resolved_updates")))
+          lines += ["", "## files", ""]
+          for p in sorted(glob.glob(os.path.join(OUT, "literal_stats", "*")) +
+                          glob.glob(os.path.join(OUT, "logs", "*"))):
+              lines.append("- %s  %d B  sha256(gz)=%s"
+                           % (os.path.relpath(p, OUT), os.path.getsize(p), sha256(p)))
+          lines += ["", "## problems", ""]
+          lines += (["- " + p for p in problems] if problems else ["- none"])
+          open(os.path.join(OUT, "MANIFEST_B.txt"), "w").write("\n".join(lines) + "\n")
+          open("PACKED-SHA256SUMS_B.txt", "w").write("\n".join(packed) + "\n")
+          open(os.path.join(OUT, "GATE-SUMMARY_B.txt"), "w").write(
+              "runs=%d problems=%d\n" % (len(rows), len(problems)))
+          print("packed files:", len(packed), " problems:", len(problems))
+          for p in problems:
+              print("::error::" + p)
+          if len(rows) != 6 or problems:
+              raise SystemExit(1)
+          PY
+
+      - name: commit and push (data first, then [skip ci])
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f literal_results_b/ PACKED-SHA256SUMS_B.txt || true
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "literal dynamics B (isoB 49/53/T=10, T6): per-trace snapshots + duty + raw stdout [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push literal B results"; exit 1
+
+      - name: verdict (red = incomplete; the data is already committed)
+        run: |
+          set -euo pipefail
+          test -s literal_results_b/ALL.csv
+          test -s literal_results_b/MANIFEST_B.txt
+          snaps=$(find literal_results_b/literal_stats -name '*_clause_snapshots.csv.gz' | wc -l)
+          dutys=$(find literal_results_b/literal_stats -name '*_literal_duty.csv.gz' | wc -l)
+          logs=$(find literal_results_b/logs -name '*.log.gz' | wc -l)
+          echo "snapshot CSVs: $snaps (expect 6)"
+          echo "duty CSVs    : $dutys (expect 6)"
+          echo "raw stdout   : $logs (expect 6)"
+          test "$snaps" -eq 6
+          test "$dutys" -eq 6
+          test "$logs" -eq 6
+          sed -n '1,20p' literal_results_b/MANIFEST_B.txt
+          echo "VERDICT: COMPLETE"
