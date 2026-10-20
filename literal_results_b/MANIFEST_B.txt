@@ -1,0 +1,43 @@
+# literal dynamics B (T6) - MANIFEST
+
+- variant: literal_stats_B (sha256 227c71c2f2c73eaf775a1e6655479a4d1c697618203e46d77ca313ac151d65be)
+- config: {"NUM_INPUTS": 49, "NUM_CLAUSES": 53, "THRESHOLD": 10, "TM_PATH_BRANCHES": 0}
+- pristine source: variants/isoB_49in_53cl (tm.cc sha256 c48173b632621db22f66ef59acf95366a985aa73e45929508d9eae6aa942b8c3, tm.h 6091623b..., tm_predictor.cc 58225a92..., tm_predictor.h 340e4cc1...)
+- expected values: isoB_results/ALL.csv (the 2026-10-16 B full-set run over the same 105 traces; T6 traces are members of that set)
+- invocation: ./cbp -E 1000000 <trace> with TM_LITERAL_OUT=<prefix>
+- snapshot cadence: every 100k resolved branches, both phases; plus one final post snapshot
+- duty table: total = resolved_updates * 53 (one slot per clause per update)
+
+| trace | TM MPKI | expected (10-16 B) | accuracy | instructions | resolved_updates |
+|---|---:|---:|---:|---:|---:|
+| compress_4_trace | 3.87394 | 3.87394 | 96.5475% | 31160801 | 3496417 |
+| fp_4_trace | 4.30826 | 4.30826 | 94.9774% | 30000052 | 2573326 |
+| infra_14_trace | 10.312 | 10.312 | 92.1119% | 50000052 | 6536490 |
+| int_1_trace | 24.8594 | 24.8594 | 85.9316% | 30000052 | 5301128 |
+| media_3_trace | 7.10793 | 7.10793 | 87.4241% | 20000046 | 1130406 |
+| web_11_trace | 17.1843 | 17.1843 | 87.6475% | 10001443 | 1391361 |
+
+## files
+
+- literal_stats/literal_stats_B__compress_4_trace_clause_snapshots.csv.gz  21050 B  sha256(gz)=0d598731f533d5a10992d37cfa9a30f9f4967625cb2496edfd844fa9d31b0c5e
+- literal_stats/literal_stats_B__compress_4_trace_literal_duty.csv.gz  1081 B  sha256(gz)=5377976fab4733c864cb63b4e5c59fedd610662e6af1e3b9d2244e0b9e896a6f
+- literal_stats/literal_stats_B__fp_4_trace_clause_snapshots.csv.gz  17593 B  sha256(gz)=127b2012d34cfd9a7d2c47122dfef403124607861aab8e6fee16652e840e6ef9
+- literal_stats/literal_stats_B__fp_4_trace_literal_duty.csv.gz  1103 B  sha256(gz)=80ddf4ef1947486349fa44f9d9f9d4e5308d6aad17e38b07944821ea171e89b1
+- literal_stats/literal_stats_B__infra_14_trace_clause_snapshots.csv.gz  32299 B  sha256(gz)=41b6db128968c06ccccbb4df021e4e6eeb3a5710f8b1f4d26a3aea9cd5e9902b
+- literal_stats/literal_stats_B__infra_14_trace_literal_duty.csv.gz  1076 B  sha256(gz)=80f932463d554ca5120b20f87b80e41e607ba92f64146947424c41e5d49d4e0e
+- literal_stats/literal_stats_B__int_1_trace_clause_snapshots.csv.gz  29248 B  sha256(gz)=cc645dcd98899bf901baf6af8a7bf9e14b6f96d3dd336a8ce11681b3e1509475
+- literal_stats/literal_stats_B__int_1_trace_literal_duty.csv.gz  1083 B  sha256(gz)=c305e270b4d364f08b05dad59448e6b13acc90b4240d6f234fcdfbef89b50562
+- literal_stats/literal_stats_B__media_3_trace_clause_snapshots.csv.gz  7600 B  sha256(gz)=31b5a38413a08be4f5212029eac43478f12d366a342548c00b8125432a2327c9
+- literal_stats/literal_stats_B__media_3_trace_literal_duty.csv.gz  1073 B  sha256(gz)=d956e6cffb49cf8f5586b727c7ccab9bc1fdbf1f2fa84c72b93a40a3df407885
+- literal_stats/literal_stats_B__web_11_trace_clause_snapshots.csv.gz  9059 B  sha256(gz)=47f7821e000777bdb98865086ea3293268f9a32300679c214c4c2d0fdc08534b
+- literal_stats/literal_stats_B__web_11_trace_literal_duty.csv.gz  1063 B  sha256(gz)=e633945efd8a7a1a48cbaf8e15de3f55efb0ff301fbea3477a69ae4938014963
+- logs/literal_stats_B__compress_4_trace.log.gz  3593 B  sha256(gz)=32e2e7cab6f1ed271ba71467983806592dae3d7a0a3d0436d19e1c2e98ed67a1
+- logs/literal_stats_B__fp_4_trace.log.gz  3457 B  sha256(gz)=8ff3d8f4b0d5ab8a5b48c1dfda031e3584fee0ba302435eb3e4381b543a564f0
+- logs/literal_stats_B__infra_14_trace.log.gz  4261 B  sha256(gz)=0bf3c67fe2306a035fce85c80068fc97a77e40d40ffe86a9e81e79ecd022a328
+- logs/literal_stats_B__int_1_trace.log.gz  3426 B  sha256(gz)=745925cbce5b77ea6260f521fb8af6b2083b311d66579ac61982ff63ddbc5c81
+- logs/literal_stats_B__media_3_trace.log.gz  2867 B  sha256(gz)=4f552e0f0c550d7840ec3185572836555cb7603a8b8d821fa9764a9e1b337fac
+- logs/literal_stats_B__web_11_trace.log.gz  2448 B  sha256(gz)=9cf733ed0e47fde06fdc85e617e2bfecd8743a9c882a26f0904b827c23e4c09d
+
+## problems
+
+- none
