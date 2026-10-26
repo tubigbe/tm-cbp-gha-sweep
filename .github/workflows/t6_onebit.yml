@@ -1,0 +1,207 @@
+name: T6 1-bit / hybrid (2026-10-26 task 1 + task 2)
+
+# WHY THIS EXISTS
+# The 2026-10-26 task asks for (1) a real measured 1-bit predictor on T6, and
+# (2) a 1-bit-primary + TM-correction arm, with the ORIGINAL TM algorithm
+# untouched.  Everything here is T6 (runlist_tune.txt) only; no V13, no 105.
+#
+# The arms live in variants/<name>/ and differ from the A baseline tree ONLY in
+#   tm.h                              knobs + arm macros
+#   tm_predictor.h / tm_predictor.cc  TM_MODE 0/1/2/3 (label + output selection)
+#   cond_branch_predictor_interface.cc  the parallel 1-bit predictor wiring
+# tm.cc (tm_predict / tm_update / tm_fb_*) is byte-identical to the baseline in
+# every arm.  The gate below proves that on sample_int: GShare MPKI and
+# instructions must not move at all, and every arm whose TM is supposed to be
+# untouched must still print 4.72575 / 124142.
+#
+# 6 shards = one per T6 trace (each downloads only its own category tarball).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 't6_onebit.json'
+      - 'scripts/run_onebit_t6.py'
+      - 'variants/onebit_*/**'
+      - 'variants/hyb*/**'
+      - 'variants/tm_pc_only/**'
+      - '.github/workflows/t6_onebit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: build + per-arm smoke gate (pollution + untouched-TM anchors)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: gate 1 - pristine tree still reproduces AGENTS.md 10.3
+        run: |
+          set -euo pipefail
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g_int.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g_fp.txt
+          grep -qF "TM right: 124142" g_int.txt || { echo "::error::pristine int broken"; exit 1; }
+          grep -qF "TM MPKI: 4.72575"  g_int.txt || { echo "::error::pristine int broken"; exit 1; }
+          grep -qF "TM MPKI: 3.26237"  g_fp.txt  || { echo "::error::pristine fp broken"; exit 1; }
+          echo "GATE 1 PASSED"
+
+      - name: gate 2 - every arm builds; pollution columns and untouched-TM anchors
+        run: |
+          set -euo pipefail
+          mkdir -p gate_logs
+          python3 - <<'PY'
+          import json, os, re, shutil, subprocess, sys
+
+          plan = json.load(open("t6_onebit.json"))
+          base = ["tm.h", "tm.cc", "tm_predictor.h", "tm_predictor.cc",
+                  "cond_branch_predictor_interface.cc"]
+          TRACE = "sample_traces/int/sample_int_trace.gz"
+          GS = "3.83635"
+          INSTR = "997301"
+
+          def restore():
+              subprocess.run(["git", "checkout", "--"] + base, check=True)
+
+          def scrape(text):
+              d = {}
+              for line in text.splitlines():
+                  for k in ("TM MPKI", "TM right", "1bit MPKI", "HYB MPKI", "GShare MPKI"):
+                      if line.startswith(k + ":"):
+                          d[k] = line.split(":", 1)[1].strip()
+                  if line.startswith("Measured # of instructions:"):
+                      d["instructions"] = line.split(":", 1)[1].strip()
+              return d
+
+          fails = []
+          for arm in plan["variants"]:
+              name = arm["name"]
+              restore()
+              vdir = os.path.join("variants", name)
+              for fn in sorted(os.listdir(vdir)):
+                  if fn.endswith((".h", ".cc")):
+                      shutil.copy(os.path.join(vdir, fn), fn)
+              subprocess.run("make clean >/dev/null", shell=True, check=True)
+              r = subprocess.run("make -j%d" % os.cpu_count(), shell=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+              if r.returncode != 0:
+                  fails.append((name, "build failed"))
+                  continue
+              out = subprocess.run(["./cbp", "-E", "1000000", TRACE],
+                                   capture_output=True, text=True).stdout
+              open("gate_logs/%s_sample_int.log" % name, "w").write(out)
+              keep = [l for l in out.splitlines()
+                      if re.match(r"^(TM|1bit|HYB|GShare) (MPKI|right|accuracy)|^1bit size|^TM initialised", l)]
+              print("---- %s ----" % name)
+              print("\n".join(keep))
+              s = scrape(out)
+              if s.get("GShare MPKI") != GS:
+                  fails.append((name, "GShare moved to %s" % s.get("GShare MPKI")))
+              if s.get("instructions") != INSTR:
+                  fails.append((name, "instructions moved to %s" % s.get("instructions")))
+              if not s.get("1bit MPKI"):
+                  fails.append((name, "no 1bit block"))
+              if arm.get("expect_tm"):
+                  if s.get("TM MPKI") != arm["expect_tm"]:
+                      fails.append((name, "TM %s != %s" % (s.get("TM MPKI"), arm["expect_tm"])))
+                  if s.get("TM right") != "124142":
+                      fails.append((name, "TM right %s != 124142" % s.get("TM right")))
+          restore()
+          if fails:
+              print("::error::ARM GATE FAILED: %s" % fails)
+              sys.exit(1)
+          print("GATE 2 PASSED: all arms built; pollution columns identical; untouched-TM arms bit-identical")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: onebit-gate-logs, path: gate_logs/, retention-days: 7 }
+
+  t6:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY2'
+          import json
+          p = json.load(open("t6_onebit.json"))
+          me = p["shards"]["${{ matrix.shard }}"]
+          print("trace:", me["trace"], "| arms:", len(p["variants"]), "| anchor:", me["expect_baseline"])
+          PY2
+      - name: build + run all arms on this trace
+        run: |
+          set -uo pipefail
+          python3 scripts/run_onebit_t6.py --shard "${{ matrix.shard }}" --parallel 4 \
+            --traces-dir traces --logs-dir logs --out-dir onebit_results
+      - name: upload results and raw stdout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onebit-${{ matrix.shard }}
+          path: |
+            onebit_results/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + commit results and raw stdout
+    needs: t6
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: onebit-*
+          merge-multiple: true
+          path: collected
+      - name: assemble CSV + pack per-trace raw stdout
+        run: |
+          set -euo pipefail
+          mkdir -p onebit_results
+          find collected -name 'shard-*.csv' -exec cp {} onebit_results/ \;
+          cat onebit_results/shard-*.csv > onebit_results/ALL.csv
+          wc -l onebit_results/ALL.csv
+          python3 scripts/pack_logs.py --src collected --out onebit_results/logs --expect-csv 'onebit_results/shard-*.csv'
+          n=$(find onebit_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n"
+          du -sh onebit_results/logs
+      - name: commit and push (skip ci)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f onebit_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "T6 1-bit / hybrid results (11 arms x 6 traces) + raw stdout [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push results"; exit 1
