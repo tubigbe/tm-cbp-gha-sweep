@@ -121,7 +121,7 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: onebit-gate-logs, path: gate_logs/, retention-days: 7 }
+        with: { name: onebitgate-logs, path: gate_logs/, retention-days: 7 }
 
   t6:
     name: shard ${{ matrix.shard }}
@@ -183,6 +183,7 @@ jobs:
       - name: assemble CSV + pack per-trace raw stdout
         run: |
           set -euo pipefail
+          rm -rf collected/gate_logs
           mkdir -p onebit_results
           find collected -name 'shard-*.csv' -exec cp {} onebit_results/ \;
           cat onebit_results/shard-*.csv > onebit_results/ALL.csv
