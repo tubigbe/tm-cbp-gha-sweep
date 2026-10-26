@@ -53,13 +53,15 @@ def load_duty(path):
 
 
 def load_snapshot_stats(path):
-    """Clause occupancy + churn from the per-100k-update snapshots."""
+    """Clause occupancy + churn from the per-100k-update snapshots.
+
+    Churn = fraction of (clause, phase) slots whose included-literal set changed
+    between two consecutive snapshots.
+    """
     n_rows = 0
     empty = 0
     lit_sum = 0
-    prev = {}
-    changes = 0
-    comps = 0
+    series = {}          # (clause, phase) -> [(sid, names)]
     with open_any(path) as fh:
         for r in csv.DictReader(fh):
             n_rows += 1
@@ -67,13 +69,16 @@ def load_snapshot_stats(path):
             lit_sum += n
             if n == 0:
                 empty += 1
-            key = (r["snapshot_id"], r["phase"], r["clause"])
             names = frozenset(r["names"].split(";")) if r["names"] else frozenset()
-            if key in prev:
-                comps += 1
-                if prev[key] != names:
-                    changes += 1
-            prev[key] = names
+            series.setdefault((r["clause"], r["phase"]), []).append((int(r["snapshot_id"]), names))
+    changes = 0
+    comps = 0
+    for key, items in series.items():
+        items.sort(key=lambda x: x[0])
+        for (_, a), (_, b) in zip(items, items[1:]):
+            comps += 1
+            if a != b:
+                changes += 1
     return {
         "snapshot_rows": n_rows,
         "mean_literals_per_clause": (lit_sum / n_rows) if n_rows else 0.0,
