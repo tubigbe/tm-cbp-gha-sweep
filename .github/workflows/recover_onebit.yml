@@ -1,0 +1,87 @@
+name: collect recovery - 2026-10-26 T6 1-bit run (never re-run a shard)
+
+# The 6 shards of run 40418659026 (commit 39c342a) all succeeded; its collect died
+# because the artifact pattern `onebit-*` also matched the gate-logs artifact, so
+# pack_logs saw 77 logs for 66 CSV rows and (correctly) refused to commit.
+# Re-collect straight from that run's artifacts with the workflow token.
+#
+# This workflow also proves the "collect only, zero shard re-runs" path again.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'recover_onebit.json'
+      - '.github/workflows/recover_onebit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  RUN_ONEBIT: "40418659026"
+
+jobs:
+  collect:
+    name: re-collect run 40418659026 and commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: download the run's artifacts (no shard re-run)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 'onebit-*'
+          merge-multiple: true
+          path: collected
+          run-id: ${{ env.RUN_ONEBIT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: inventory then assemble + pack + summarize (fail-soft)
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "--- collected tree (top) ---"
+          find collected -maxdepth 2 | sort | sed -n '1,40p'
+          # the gate job uploads gate_logs/ (11 sample_int logs); they are NOT
+          # per-trace stdout of this experiment and must not enter the archive
+          rm -rf collected/gate_logs
+          mkdir -p onebit_results
+          find collected -name 'shard-*.csv' -exec cp {} onebit_results/ \;
+          cat onebit_results/shard-*.csv > onebit_results/ALL.csv
+          wc -l onebit_results/ALL.csv
+          python3 scripts/pack_logs.py --src collected --out onebit_results/logs \
+            --expect 66 --expect-csv 'onebit_results/shard-*.csv'
+          python3 scripts/summarize_onebit.py \
+            --results onebit_results/ALL.csv --plan t6_onebit.json \
+            --out onebit_results/SUMMARY.csv | tee onebit_results/SUMMARY.md
+
+      - name: commit and push (data first, [skip ci])
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f onebit_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "T6 1-bit / hybrid results (11 arms x 6 traces): re-collect from run 40418659026 [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push"; exit 1
+
+      - name: verdict (red means the archive is incomplete or an invariant broke)
+        run: |
+          set -euo pipefail
+          test -s onebit_results/SUMMARY.csv
+          n=$(find onebit_results/logs -name '*.log.gz' | wc -l)
+          echo "packed logs: $n (expect 66)"
+          test "$n" -eq 66
+          python3 scripts/summarize_onebit.py \
+            --results onebit_results/ALL.csv --plan t6_onebit.json \
+            --out /tmp/SUMMARY.csv | tail -25
+          echo "VERDICT: COMPLETE"

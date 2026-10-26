@@ -1,0 +1,6 @@
+{
+  "purpose": "trigger marker for .github/workflows/recover_onebit.yml - re-collect run 40418659026 (T6 1-bit, 6 shards all success) without re-running any shard",
+  "run_id": 40418659026,
+  "expect_rows": 66,
+  "note": "collect died on the artifact-pattern collision: pattern onebit-* also matched the gate-logs artifact (77 logs vs 66 rows)."
+}
