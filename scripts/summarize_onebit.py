@@ -54,7 +54,7 @@ def main():
             for t in traces:
                 got = by.get((v, t), {}).get("TM MPKI")
                 want = anchors.get(t)
-                if got != want:
+                if want is not None and got != str(want):
                     problems.append("%s/%s: TM MPKI %r != published %r" % (v, t, got, want))
 
     def num(r, k):
