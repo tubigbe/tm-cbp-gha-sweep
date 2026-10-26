@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """Summarize the 2026-10-26 T6 1-bit / hybrid run.
 
-Input : onebit_results/ALL.csv (11 arms x 6 T6 traces, from run_onebit_t6.py)
-Output: onebit_results/SUMMARY.csv + a Markdown table on stdout
+Input : onebit_results/ALL.csv (11 arms x 6 T6 traces)
+Output: SUMMARY.csv + a Markdown table on stdout
 
-Also enforces the two invariants that must hold for the numbers to mean anything:
-  * per trace, `GShare MPKI` and `instructions` are identical across all arms
-    (the arms only touch the TM / 1-bit predictor, never the input-side ones);
-  * every arm with `expect_tm` set reproduces the published T6 TM MPKI for its
-    trace bit-for-bit (string equality) - that is the "original TM untouched"
-    proof for the arms that must not move it.
+Invariants (the numbers mean nothing if these break):
+  * per trace, GShare MPKI and instructions are identical across all arms
+    (arms only touch the TM / 1-bit path, never the input-side predictors);
+  * arms whose TM must stay untouched (mode 0/3, excluding tm_pc_only)
+    reproduce the published per-trace T6 TM MPKI bit-for-bit (string equality).
 """
 import argparse
 import csv
 import json
-import os
 import sys
 
 
@@ -25,20 +23,25 @@ def main():
     ap.add_argument("--out", default="onebit_results/SUMMARY.csv")
     a = ap.parse_args()
 
-    rows = [r for r in csv.DictReader(open(a.results)) if r.get("trace") not in (None, "", "trace")]
+    rows = []
+    with open(a.results, newline="") as fh:
+        for r in csv.DictReader(fh):
+            if not r.get("trace") or r["trace"] in ("trace", "variant"):
+                continue
+            rows.append(r)
     if not rows:
         print("::error::no rows in", a.results)
         return 1
     plan = json.load(open(a.plan))
-    expect_tm = {v["name"]: v.get("expect_tm") for v in plan["variants"]}
     anchors = {s["trace"]: s["expect_baseline"] for s in plan["shards"].values()}
+    untouched = {v["name"] for v in plan["variants"]
+                 if v.get("mode") in (0, 3) and v["name"] != "tm_pc_only"}
 
     traces = sorted({r["trace"] for r in rows})
     arms = sorted({r["variant"] for r in rows})
     by = {(r["variant"], r["trace"]): r for r in rows}
 
     problems = []
-    # invariant 1: input-side columns constant across arms
     for t in traces:
         gs = {by[(v, t)]["GShare MPKI"] for v in arms if (v, t) in by}
         ins = {by[(v, t)]["instructions"] for v in arms if (v, t) in by}
@@ -46,10 +49,8 @@ def main():
             problems.append("%s: GShare MPKI varies across arms: %s" % (t, sorted(gs)))
         if len(ins) != 1:
             problems.append("%s: instructions vary across arms: %s" % (t, sorted(ins)))
-    # invariant 2: untouched-TM anchors
     for v in arms:
-        exp = expect_tm.get(v)
-        if exp:
+        if v in untouched:
             for t in traces:
                 got = by.get((v, t), {}).get("TM MPKI")
                 want = anchors.get(t)
@@ -65,10 +66,12 @@ def main():
     out = []
     for v in arms:
         rs = [by[(v, t)] for t in traces if (v, t) in by]
+
         def mean(k):
             vals = [num(r, k) for r in rs]
             vals = [x for x in vals if x is not None]
             return sum(vals) / len(vals) if vals else None
+
         out.append({
             "variant": v,
             "mode": rs[0].get("mode", ""),
@@ -79,7 +82,6 @@ def main():
             "GShare_MPKI_mean": "%.5f" % mean("GShare MPKI") if mean("GShare MPKI") is not None else "",
             "TAGE_MPKI_mean": "%.5f" % mean("TAGE MPKI") if mean("TAGE MPKI") is not None else "",
         })
-    # sort by the most relevant metric: HYB if present, else 1bit
     for r in out:
         r["_key"] = float(r["HYB_MPKI_mean"] or r["onebit_MPKI_mean"] or 1e9)
     out.sort(key=lambda r: r["_key"])
