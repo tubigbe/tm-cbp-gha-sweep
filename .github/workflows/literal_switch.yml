@@ -1,0 +1,228 @@
+name: Literal dynamics as a compile switch (A + B, T6, 2026-10-26 task 3)
+
+# WHY THIS EXISTS
+# Task 3 wants the clause/literal dynamics visible from the TM code structure and
+# statistics produced from it.  The 2026-10-20 observer already does the hard
+# part (per-100k-update clause snapshots + per-input duty); this workflow runs
+# the PACKAGED version:
+#
+#   TM_LITERAL_STATS 0 (default) : observer not compiled at all; the predictor
+#                                  build carries none of it and writes nothing
+#                                  even when TM_LITERAL_OUT is exported.
+#   TM_LITERAL_STATS 1           : observer compiled, still read-only (TM/GShare/
+#                                  TAGE numbers must stay bit-identical).
+#
+# Two configurations per T6 trace:
+#   A = baseline TM (81 in / 32 clauses / T=6 / 4 path branches)
+#   B = iso-area B (49 in / 53 clauses / T=10 / 0 path branches)
+#
+# 12 shards = 2 configs x 6 traces; every shard keeps the raw stdout and both
+# statistics CSVs, and the collect job commits them gzipped plus a summary table.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'literal_switch_A.json'
+      - 'literal_switch_B.json'
+      - 'scripts/run_literal_switch.py'
+      - 'scripts/summarize_literal.py'
+      - 'variants/literal_switch_*/**'
+      - '.github/workflows/literal_switch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    name: switch gates (OFF inert AND silent, ON read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: build all four variants and gate them on sample_int
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import glob, os, re, shutil, subprocess, sys
+
+          base = ["tm.h", "tm.cc", "tm_predictor.h", "tm_predictor.cc",
+                  "cond_branch_predictor_interface.cc"]
+          TRACE = "sample_traces/int/sample_int_trace.gz"
+
+          def restore():
+              subprocess.run(["git", "checkout", "--"] + base, check=True)
+
+          def build(v):
+              restore()
+              d = os.path.join("variants", v)
+              for fn in sorted(os.listdir(d)):
+                  if fn.endswith((".h", ".cc")):
+                      shutil.copy(os.path.join(d, fn), fn)
+              subprocess.run("make clean >/dev/null", shell=True, check=True)
+              r = subprocess.run("make -j%d" % (os.cpu_count() or 4), shell=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+              return r.returncode == 0
+
+          cases = [
+              # variant,              TM MPKI,  TM right, stats compiled, rows
+              ("literal_switch_A",    "4.72575", "124142", 0, 81),
+              ("literal_switch_A_on", "4.72575", "124142", 1, 81),
+              ("literal_switch_B",    "4.22641", "124640", 0, 49),
+              ("literal_switch_B_on", "4.22641", "124640", 1, 49),
+          ]
+          fails = []
+          for v, mpki, right, stats_on, n_inputs in cases:
+              for f in glob.glob("/tmp/lit_%s_*" % v):
+                  os.remove(f)
+              if not build(v):
+                  fails.append((v, "build failed")); continue
+              env = dict(os.environ)
+              env["TM_LITERAL_OUT"] = "/tmp/lit_%s" % v
+              out = subprocess.run(["./cbp", "-E", "1000000", TRACE],
+                                   capture_output=True, text=True, env=env).stdout
+              got = dict(re.findall(r"^(TM MPKI|TM right|GShare MPKI): (.+)$", out, re.M))
+              files = glob.glob("/tmp/lit_%s_*" % v)
+              print("%-22s TM=%-8s right=%-7s GShare=%-8s stats_files=%d"
+                    % (v, got.get("TM MPKI"), got.get("TM right"),
+                       got.get("GShare MPKI"), len(files)))
+              if got.get("TM MPKI") != mpki:
+                  fails.append((v, "TM MPKI %s != %s" % (got.get("TM MPKI"), mpki)))
+              if got.get("TM right") != right:
+                  fails.append((v, "TM right %s" % got.get("TM right")))
+              if got.get("GShare MPKI") != "3.83635":
+                  fails.append((v, "GShare moved to %s" % got.get("GShare MPKI")))
+              if stats_on:
+                  duty = glob.glob("/tmp/lit_%s_*_literal_duty.csv" % v)
+                  if not files or not duty:
+                      fails.append((v, "no stats files although compiled in"))
+                  else:
+                      lines = open(duty[0]).read().strip().splitlines()
+                      if len(lines) != n_inputs + 1:
+                          fails.append((v, "duty rows %d != %d" % (len(lines), n_inputs + 1)))
+              else:
+                  if files:
+                      fails.append((v, "OFF build wrote stats files"))
+          restore()
+          if fails:
+              print("::error::SWITCH GATE FAILED: %s" % fails)
+              sys.exit(1)
+          print("SWITCH GATE PASSED: OFF is inert AND silent; ON leaves TM/GShare bit-identical")
+          PY
+
+  literal:
+    name: ${{ matrix.cfg }} / shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        cfg: [A, B]
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: run one trace with the instrumented build
+        run: |
+          set -uo pipefail
+          python3 scripts/run_literal_switch.py \
+            --shard "${{ matrix.shard }}" \
+            --plan "literal_switch_${{ matrix.cfg }}.json" \
+            --variant "literal_switch_${{ matrix.cfg }}_on" \
+            --num-inputs "${{ matrix.cfg == 'A' && 81 || 49 }}" \
+            --traces-dir traces \
+            --logs-dir "switch_logs_${{ matrix.cfg }}" \
+            --stats-dir "switch_stats_${{ matrix.cfg }}" \
+            --out-dir "switch_results_${{ matrix.cfg }}"
+      - name: upload results, raw stdout and statistics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: literal-switch-${{ matrix.cfg }}-${{ matrix.shard }}
+          path: |
+            switch_results_${{ matrix.cfg }}/
+            switch_logs_${{ matrix.cfg }}/
+            switch_stats_${{ matrix.cfg }}/
+          retention-days: 14
+
+  collect:
+    name: collect + gzip + summarize + commit
+    needs: literal
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'literal-switch-*'
+          merge-multiple: true
+          path: collected
+
+      - name: assemble, gzip, summarize
+        run: |
+          set -euo pipefail
+          mkdir -p literal_switch_results/literal_stats literal_switch_results/logs
+          python3 - <<'PY'
+          import csv, glob, gzip, hashlib, os
+
+          OUT = "literal_switch_results"
+          os.makedirs(OUT, exist_ok=True)
+          rows = []
+          for f in sorted(glob.glob("collected/switch_results_*/shard-*.csv")):
+              rows += list(csv.DictReader(open(f)))
+          print("shard rows:", len(rows))
+          cols = ["variant", "trace", "seconds", "rc", "TM MPKI", "TM accuracy",
+                  "TM right", "TM wrong", "GShare MPKI", "GShare accuracy",
+                  "TAGE MPKI", "instructions", "GShare wrong", "resolved_updates",
+                  "stats_prefix"]
+          with open(os.path.join(OUT, "ALL.csv"), "w", newline="") as fh:
+              w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+              w.writeheader()
+              for r in sorted(rows, key=lambda x: (x["variant"], x["trace"])):
+                  w.writerow(r)
+
+          packed = []
+          for src_pat, dst_dir in (("collected/switch_stats_*/*.csv", OUT + "/literal_stats"),
+                                   ("collected/switch_logs_*/*.log", OUT + "/logs")):
+              os.makedirs(dst_dir, exist_ok=True)
+              for p in sorted(glob.glob(src_pat)):
+                  base = os.path.basename(p)
+                  data = open(p, "rb").read()
+                  h = hashlib.sha256(data).hexdigest()
+                  dst = os.path.join(dst_dir, base + ".gz")
+                  with gzip.open(dst, "wb", compresslevel=9) as fh:
+                      fh.write(data)
+                  packed.append("%s  %d  %s" % (h, len(data), os.path.relpath(dst, OUT)))
+          with open(os.path.join(OUT, "MANIFEST.txt"), "w") as fh:
+              fh.write("\n".join(packed) + "\n")
+          print("packed %d file(s)" % len(packed))
+          PY
+          python3 scripts/summarize_literal.py \
+            --stats-dir literal_switch_results/literal_stats \
+            --out literal_switch_results/SUMMARY.csv | tee literal_switch_results/SUMMARY.md
+          test -s literal_switch_results/SUMMARY.csv
+
+      - name: commit and push (skip ci)
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f literal_switch_results/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "literal dynamics as a compile switch (A + B x T6): stats CSVs + summary + raw stdout [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push"; exit 1
