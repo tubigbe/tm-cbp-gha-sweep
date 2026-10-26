@@ -98,7 +98,7 @@ jobs:
               if got.get("GShare MPKI") != "3.83635":
                   fails.append((v, "GShare moved to %s" % got.get("GShare MPKI")))
               if stats_on:
-                  duty = glob.glob("/tmp/lit_%s_*_literal_duty.csv" % v)
+                  duty = glob.glob("/tmp/lit_%s_literal_duty.csv" % v)
                   if not files or not duty:
                       fails.append((v, "no stats files although compiled in"))
                   else:
