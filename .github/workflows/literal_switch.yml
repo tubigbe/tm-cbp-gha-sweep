@@ -26,7 +26,6 @@ on:
       - 'literal_switch_A.json'
       - 'literal_switch_B.json'
       - 'scripts/run_literal_switch.py'
-      - 'scripts/summarize_literal.py'
       - 'variants/literal_switch_*/**'
       - '.github/workflows/literal_switch.yml'
   workflow_dispatch:
