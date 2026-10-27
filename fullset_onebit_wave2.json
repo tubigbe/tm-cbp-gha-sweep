@@ -1,0 +1,12 @@
+{
+  "experiment": "2026-10-27 full-set wave 2: hybC_t2 + tm_pc_only on the whole 105-trace set",
+  "test_set": "full set (fullsets_isoB.json: 7 category shards, 105 traces)",
+  "note": "Wave 1 (onebit_pc17 + hybB) is committed; this wave puts the real 'TM corrects 1-bit' arm (hybC_t2, T6 -2.58%) on the same scale as hybB, and pins 'the TM is not a PC table' on the full set with tm_pc_only (1,344 B).",
+  "variants": [
+    {"name": "hybC_t2", "mode": 3, "why": "confidence gate: use TM only when |vote| >= 2, otherwise keep the 1-bit prediction (TM itself untouched)"},
+    {"name": "tm_pc_only", "mode": 0, "why": "original TM fed only the 21 PC bits (1,344 B) - the control for 'TM is not a PC table'"}
+  ],
+  "shards": 7,
+  "jobs": 14,
+  "max_parallel": 14
+}
