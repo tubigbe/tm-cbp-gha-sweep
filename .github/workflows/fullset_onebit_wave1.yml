@@ -1,0 +1,327 @@
+name: full-set wave 1 - onebit_pc17 + hybB x 105 traces
+
+# WHY THIS EXISTS
+# 2026-10-26 delivered the 1-bit / hybrid arms on T6 - six traces, a clue set.
+# The user then asked how large the gap really is on the whole set, so this wave
+# runs two arms over the same 7-shard / 105-trace plan the full-set sweep uses
+# (fullsets_isoB.json, categories int/int/web/infra/fp/compress/media).
+#
+# Arms (variants/ unchanged since the 2026-10-26 provenance lock):
+#   onebit_pc17  - per-PC 1-bit, 2^17 bits = 16 KB, TM untouched (parallel observer)
+#   hybB         - 1-bit prediction as input 81 -> 82, output is the TM itself
+#
+# Baseline is NOT re-run: baseA_results/ALL.csv already is the 105-trace A baseline
+# (TM 13.41542).  Determinism is enforced twice:
+#   gate job : pristine build + each arm reproduces its own ku smoke values
+#   collect  : every trace must reproduce GShare/instructions (and TM for the
+#              untouched arm) bit for bit against baseA_results/ALL.csv
+#
+# 14 jobs = 7 shards x 2 arms, max-parallel 14 (one config per job, one tarball each).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fullset_onebit_wave1.json'
+      - 'scripts/run_fullset_arm.py'
+      - 'scripts/summarize_fullset_arm.py'
+      - '.github/workflows/fullset_onebit_wave1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fullset-onebit-wave1
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: build + per-arm ku smoke gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: gate 1 - pristine tree still reproduces the A baseline
+        run: |
+          set -euo pipefail
+          grep -qE '^#define NUM_INPUTS 81' tm.h
+          grep -qE '^#define NUM_CLAUSES 32' tm.h
+          grep -qE '^#define THRESHOLD 6' tm.h
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g_int.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g_fp.txt
+          grep -qF "TM right: 124142"  g_int.txt || { echo "::error::pristine int broken"; exit 1; }
+          grep -qF "TM MPKI: 4.72575"  g_int.txt || { echo "::error::pristine int broken"; exit 1; }
+          grep -qF "TM MPKI: 3.26237"  g_fp.txt  || { echo "::error::pristine fp broken";  exit 1; }
+          grep -qF "GShare MPKI: 3.83635" g_int.txt || { echo "::error::pristine gshare broken"; exit 1; }
+          grep -qF "Measured # of instructions: 997301" g_int.txt || { echo "::error::pristine instr broken"; exit 1; }
+          echo "GATE 1 PASSED"
+
+      - name: gate 2 - each arm reproduces its ku smoke values on sample_int + sample_fp
+        run: |
+          set -euo pipefail
+          mkdir -p gate_logs
+          python3 - <<'PY'
+          import json, os, re, shutil, subprocess, sys
+
+          # Frozen from the ku run of 2026-10-27 10:1x UTC (source of truth = ku).
+          # onebit_pc17: TM untouched -> TM anchors identical to the baseline.
+          # hybB: TM_MODE 2, output is the TM itself, so TM MPKI == HYB MPKI.
+          EXPECT = {
+              "onebit_pc17": {
+                  "int": {"TM MPKI": "4.72575", "TM right": "124142",
+                          "1bit MPKI": "2.21097", "1bit right": "126650",
+                          "GShare MPKI": "3.83635", "instructions": "997301",
+                          "onebit_size": "131072 bits, 16 KB"},
+                  "fp":  {"TM MPKI": "3.26237", "TM right": "107985",
+                          "1bit MPKI": "3.20524", "1bit right": "108042",
+                          "GShare MPKI": "13.5907", "instructions": "997741"},
+              },
+              "hybB": {
+                  "int": {"TM MPKI": "1.94224", "TM right": "126918",
+                          "HYB MPKI": "1.94224", "HYB right": "126918",
+                          "override count": "1066", "rescue": "667", "hurt": "399",
+                          "1bit MPKI": "2.21097", "1bit right": "126650",
+                          "GShare MPKI": "3.83635", "instructions": "997301"},
+                  "fp":  {"TM MPKI": "3.29344", "TM right": "107954",
+                          "HYB MPKI": "3.29344", "HYB right": "107954",
+                          "override count": "1342", "rescue": "627", "hurt": "715",
+                          "1bit MPKI": "3.20524", "1bit right": "108042",
+                          "GShare MPKI": "13.5907", "instructions": "997741"},
+              },
+          }
+          TRACES = {"int": "sample_traces/int/sample_int_trace.gz",
+                    "fp": "sample_traces/fp/sample_fp_trace.gz"}
+          BASE = ["tm.h", "tm.cc", "tm_predictor.h", "tm_predictor.cc",
+                  "cond_branch_predictor_interface.cc"]
+          PLAIN = ("TM MPKI", "TM right", "1bit MPKI", "1bit right",
+                   "HYB MPKI", "HYB right", "override count", "rescue", "hurt",
+                   "GShare MPKI")
+
+          def restore():
+              subprocess.run(["git", "checkout", "--"] + BASE, check=True)
+
+          def scrape(text):
+              d = {}
+              for line in text.splitlines():
+                  s = line.strip()
+                  for k in PLAIN:
+                      if s.startswith(k + ":"):
+                          d[k] = s.split(":", 1)[1].strip()
+                  if s.startswith("Measured # of instructions:"):
+                      d["instructions"] = s.split(":", 1)[1].strip()
+                  if s.startswith("1bit size:"):
+                      d["onebit_size"] = s.split(":", 1)[1].strip()
+              return d
+
+          fails = []
+          for arm in json.load(open("fullset_onebit_wave1.json"))["variants"]:
+              name = arm["name"]
+              restore()
+              vdir = os.path.join("variants", name)
+              for fn in sorted(os.listdir(vdir)):
+                  if fn.endswith((".h", ".cc")):
+                      shutil.copy(os.path.join(vdir, fn), fn)
+              subprocess.run("make clean >/dev/null", shell=True, check=True)
+              r = subprocess.run("make -j%d" % os.cpu_count(), shell=True,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+              if r.returncode != 0:
+                  fails.append((name, "build failed"))
+                  continue
+              for tag, trace in TRACES.items():
+                  out = subprocess.run(["./cbp", "-E", "1000000", trace],
+                                       capture_output=True, text=True).stdout
+                  open("gate_logs/%s_%s.log" % (name, tag), "w").write(out)
+                  s = scrape(out)
+                  for k, want in EXPECT[name][tag].items():
+                      got = s.get(k)
+                      status = "OK  " if got == want else "FAIL"
+                      print("  %s %-16s %-5s %-14s got=%r want=%r"
+                            % (status, name, tag, k, got, want))
+                      if got != want:
+                          fails.append((name, tag, k, got, want))
+          restore()
+          if fails:
+              print("::error::ARM SMOKE GATE FAILED: %s" % fails)
+              sys.exit(1)
+          print("GATE 2 PASSED: both arms reproduce the ku smoke values (TM/GShare/instructions included)")
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wave1-gate-logs
+          path: gate_logs/
+          retention-days: 7
+
+  fullset:
+    name: ${{ matrix.arm }} shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 14
+      matrix:
+        arm: [onebit_pc17, hybB]
+        shard: [0, 1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: vars
+        name: pick the output directory for this arm
+        run: |
+          if [ "${{ matrix.arm }}" = "onebit_pc17" ]; then
+            echo "outdir=fullset_onebit" >> "$GITHUB_OUTPUT"
+          else
+            echo "outdir=fullset_hybB" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("fullsets_isoB.json"))["${{ matrix.shard }}"]
+          print("category :", p["category"])
+          print("traces   :", len(p["traces"]))
+          print("gdrive   :", p["gdrive_id"], "~%.2f GB" % p["size_gb"])
+          print(", ".join(p["traces"]))
+          PY
+
+      - name: run full-set shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_fullset_arm.py \
+            --shard "${{ matrix.shard }}" \
+            --config "${{ matrix.arm }}" \
+            --plan fullsets_isoB.json \
+            --parallel 4 \
+            --traces-dir traces \
+            --logs-dir "${{ steps.vars.outputs.outdir }}/logs" \
+            --out-dir "${{ steps.vars.outputs.outdir }}"
+
+      - name: upload results and raw stdout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsw1-${{ matrix.arm }}-${{ matrix.shard }}
+          path: ${{ steps.vars.outputs.outdir }}/
+          retention-days: 14
+          if-no-files-found: warn
+
+  collect:
+    name: collect + rebuild + determinism gate + commit
+    needs: fullset
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'fsw1-onebit_pc17-*'
+          path: collected/onebit_pc17
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'fsw1-hybB-*'
+          path: collected/hybB
+          merge-multiple: true
+
+      - name: assemble shard CSVs + pack per-trace raw stdout
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p fullset_onebit/logs fullset_hybB/logs
+          cp collected/onebit_pc17/shard-*.csv fullset_onebit/
+          cp collected/hybB/shard-*.csv fullset_hybB/
+          ls -la fullset_onebit/ fullset_hybB/
+          python3 scripts/pack_logs.py --src collected/onebit_pc17 \
+            --out fullset_onebit/logs --expect 105 \
+            --expect-csv 'fullset_onebit/shard-*.csv'
+          python3 scripts/pack_logs.py --src collected/hybB \
+            --out fullset_hybB/logs --expect 105 \
+            --expect-csv 'fullset_hybB/shard-*.csv'
+          find fullset_onebit/logs -name '*.log.gz' | wc -l
+          find fullset_hybB/logs   -name '*.log.gz' | wc -l
+          du -sh fullset_onebit/logs fullset_hybB/logs
+
+      - name: rebuild CSV from raw stdout (never cat shard-*.csv)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 scripts/rebuild_onebit_csv.py --results fullset_onebit \
+            --plan fullset_onebit_wave1.json
+          python3 scripts/rebuild_onebit_csv.py --results fullset_hybB \
+            --plan fullset_onebit_wave1.json
+          wc -l fullset_onebit/ALL.csv fullset_hybB/ALL.csv
+
+      - name: summarise + determinism gate vs the 105-trace baseline
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 scripts/summarize_fullset_arm.py --arm onebit_pc17 \
+            --results fullset_onebit --base baseA_results/ALL.csv --plan fullsets_isoB.json
+          python3 scripts/summarize_fullset_arm.py --arm hybB \
+            --results fullset_hybB --base baseA_results/ALL.csv --plan fullsets_isoB.json \
+            --ref-results fullset_onebit --ref-arm onebit_pc17
+
+      - name: commit and push (skip ci to avoid re-triggering)
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f fullset_onebit/ fullset_hybB/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "full-set wave 1: onebit_pc17 + hybB x 105 traces + raw stdout [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push collect results"; exit 1
+
+      - name: verdict - red only for an incomplete run, the data is already pushed
+        if: always()
+        run: |
+          set -uo pipefail
+          fail=0
+          for f in fullset_onebit/INVENTORY.txt fullset_hybB/INVENTORY.txt; do
+            if [ -f "$f" ]; then
+              echo "--- $f"
+              cat "$f"
+              grep -q '^VERDICT: COMPLETE$' "$f" || { echo "::error::$f is not COMPLETE"; fail=1; }
+            else
+              echo "::error::missing $f - the collectors did not produce a table"
+              fail=1
+            fi
+          done
+          if [ "$fail" -eq 0 ]; then
+            echo "COLLECT COMPLETE"
+          else
+            echo "::error::COLLECT INCOMPLETE - whatever arrived is committed; recover by run-id, do not re-run shards"
+          fi
+          exit "$fail"
+
