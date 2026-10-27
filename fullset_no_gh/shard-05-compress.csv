@@ -1,0 +1,9 @@
+shard,category,trace,variant,mode,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,1bit MPKI,1bit accuracy,1bit wrong,1bit right,HYB MPKI,HYB accuracy,HYB right,HYB wrong,override count,rescue,hurt,GShare MPKI,GShare wrong,TAGE MPKI,instructions,tm_size,onebit_size
+5,compress,compress_0_trace,no_gh,,1044.6,0,10.1128,89.6702%,10534340,1213535,,,,,,,,,,,,18.2472,2189661,3.6330,120000052,3648 bytes,
+5,compress,compress_1_trace,no_gh,,325.2,0,3.6111,96.6469%,3203506,111145,,,,,,,,,,,,6.09395,187564,1.7527,30778699,3648 bytes,
+5,compress,compress_2_trace,no_gh,,338.5,0,3.17866,97.1456%,3498547,102795,,,,,,,,,,,,5.73974,185618,1.5508,32339109,3648 bytes,
+5,compress,compress_3_trace,no_gh,,1107.1,0,17.8192,85.2479%,13386320,2316497,,,,,,,,,,,,27.8661,3622598,8.8856,130000020,3648 bytes,
+5,compress,compress_4_trace,no_gh,,303.3,0,4.00141,96.4339%,3371730,124687,,,,,,,,,,,,7.23412,225421,1.9207,31160801,3648 bytes,
+5,compress,compress_5_trace,no_gh,,324.2,0,4.00102,96.5229%,3755363,135282,,,,,,,,,,,,7.23541,244643,2.0107,33811883,3648 bytes,
+5,compress,compress_6_trace,no_gh,,322.1,0,3.92559,96.5839%,3754311,132788,,,,,,,,,,,,7.21915,244197,1.9813,33826271,3648 bytes,
+5,compress,compress_7_trace,no_gh,,883.0,0,5.75573,95.0258%,14294205,748245,,,,,,,,,,,,8.73447,1135482,2.1290,130000052,3648 bytes,
