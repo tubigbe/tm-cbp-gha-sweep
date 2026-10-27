@@ -1,40 +1,24 @@
 #!/usr/bin/env python3
-"""Summarize the literal-dynamics statistics into one table (task 3 deliverable).
+"""Add a second churn metric to the literal summary.
 
-Inputs: the per-trace `<variant>__<trace>_literal_duty.csv(.gz)` and
-`<variant>__<trace>_clause_snapshots.csv(.gz)` produced by the TM_LITERAL_STATS
-build, from the 2026-10-26 switch variants.
+  slot_churn_pct        : fraction of (clause, phase) slots whose included-literal
+                          SET changed between two consecutive snapshots (strict)
+  length_churn_pct      : fraction whose NUMBER of included literals changed
+                          (this is the metric behind the 10-20 "21.8/32 clauses"
+                          statement, so the two batches become directly comparable)
 
-Outputs: <out>.csv with one row per (variant, trace, input-group) plus one
-"ALL" group row, and a Markdown table on stdout.
-
-Input groups are inferred from the literal names in tm.cc's TM_INPUT_NAMES:
-  pc2..pcN   -> PC bits
-  gh0..ghN   -> global history bits
-  lh/bN_pcN  -> local history / preceding-branch path bits
+Run against the committed stats dir; regenerates SUMMARY.csv/.md.
 """
-import argparse
 import csv
 import glob
 import gzip
 import os
-import re
 import sys
 
-GROUP_RE = [
-    (re.compile(r"^pc\d+$"), "pc"),
-    (re.compile(r"^gh\d+$"), "global_history"),
-    (re.compile(r"^lh\d+$"), "local_history"),
-    (re.compile(r"^b\d+_pc\d+$"), "path"),
-    (re.compile(r"^b\d+_dir$"), "path"),
-]
-
-
-def group_of(name):
-    for rx, g in GROUP_RE:
-        if rx.match(name):
-            return g
-    return "other"
+FIELDS_ORDER = ["variant", "trace", "group", "n_inputs",
+                "duty_pre_pct_mean", "duty_post_pct_mean", "ever_included_pct",
+                "mean_literals_per_clause", "empty_clause_pct",
+                "slot_churn_pct", "length_churn_pct"]
 
 
 def open_any(path):
@@ -43,102 +27,92 @@ def open_any(path):
     return open(path, errors="replace")
 
 
-def load_duty(path):
-    rows = []
+def snapshot_metrics(path):
+    series = {}
     with open_any(path) as fh:
         for r in csv.DictReader(fh):
-            r["group"] = group_of(r["name"])
-            rows.append(r)
-    return rows
-
-
-def load_snapshot_stats(path):
-    """Clause occupancy + churn from the per-100k-update snapshots.
-
-    Churn = fraction of (clause, phase) slots whose included-literal set changed
-    between two consecutive snapshots.
-    """
-    n_rows = 0
-    empty = 0
-    lit_sum = 0
-    series = {}          # (clause, phase) -> [(sid, names)]
+            series.setdefault((r["clause"], r["phase"]), []).append(
+                (int(r["snapshot_id"]),
+                 frozenset(r["names"].split(";")) if r["names"] else frozenset(),
+                 int(r["n_literals"])))
+    comps = sets = lens = 0
+    lit_sum = rows = empty = 0
+    for items in series.values():
+        items.sort()
+        for (_, sa, na), (_, sb, nb) in zip(items, items[1:]):
+            comps += 1
+            if sa != sb:
+                sets += 1
+            if na != nb:
+                lens += 1
     with open_any(path) as fh:
         for r in csv.DictReader(fh):
-            n_rows += 1
+            rows += 1
             n = int(r["n_literals"])
             lit_sum += n
             if n == 0:
                 empty += 1
-            names = frozenset(r["names"].split(";")) if r["names"] else frozenset()
-            series.setdefault((r["clause"], r["phase"]), []).append((int(r["snapshot_id"]), names))
-    changes = 0
-    comps = 0
-    for key, items in series.items():
-        items.sort(key=lambda x: x[0])
-        for (_, a), (_, b) in zip(items, items[1:]):
-            comps += 1
-            if a != b:
-                changes += 1
     return {
-        "snapshot_rows": n_rows,
-        "mean_literals_per_clause": (lit_sum / n_rows) if n_rows else 0.0,
-        "empty_clause_pct": (100.0 * empty / n_rows) if n_rows else 0.0,
-        "slot_churn_pct": (100.0 * changes / comps) if comps else 0.0,
+        "slot_churn_pct": (100.0 * sets / comps) if comps else 0.0,
+        "length_churn_pct": (100.0 * lens / comps) if comps else 0.0,
+        "mean_literals_per_clause": (lit_sum / rows) if rows else 0.0,
+        "empty_clause_pct": (100.0 * empty / rows) if rows else 0.0,
     }
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--stats-dir", default="literal_switch_results/literal_stats")
-    ap.add_argument("--out", default="literal_switch_results/SUMMARY.csv")
-    a = ap.parse_args()
-
-    duty_files = sorted(glob.glob(os.path.join(a.stats_dir, "*_literal_duty.csv*")))
+    stats_dir = sys.argv[1] if len(sys.argv) > 1 else "literal_switch_results/literal_stats"
+    out = sys.argv[2] if len(sys.argv) > 2 else "literal_switch_results/SUMMARY.csv"
+    duty_files = sorted(glob.glob(os.path.join(stats_dir, "*_literal_duty.csv*")))
     if not duty_files:
-        print("::error::no duty CSVs under", a.stats_dir)
+        print("::error::no duty CSVs under", stats_dir)
         return 1
 
-    out_rows = []
+    rows_out = []
     for duty_path in duty_files:
         key = os.path.basename(duty_path).split("_literal_duty")[0]
         variant, trace = key.split("__", 1)
-        duty = load_duty(duty_path)
-        snap_path = duty_path.replace("_literal_duty.csv", "_clause_snapshots.csv")
-        snap = load_snapshot_stats(snap_path) if os.path.exists(snap_path) else {}
-
-        by_group = {}
+        snap = snapshot_metrics(duty_path.replace("_literal_duty.csv", "_clause_snapshots.csv"))
+        duty = list(csv.DictReader(open_any(duty_path)))
+        groups = {}
         for r in duty:
-            by_group.setdefault(r["group"], []).append(r)
-        for group, rows in sorted(by_group.items()) + ([("ALL", duty)] if len(by_group) > 1 else []):
-            n = len(rows)
-            pre = sum(float(r["duty_pre_pct"]) for r in rows) / n
-            post = sum(float(r["duty_post_pct"]) for r in rows) / n
-            ever = 100.0 * sum(1 for r in rows if r["ever_included"] == "1") / n
-            out_rows.append({
-                "variant": variant, "trace": trace, "group": group, "n_inputs": n,
-                "duty_pre_pct_mean": "%.4f" % pre,
-                "duty_post_pct_mean": "%.4f" % post,
-                "ever_included_pct": "%.2f" % ever,
-                "mean_literals_per_clause": "%.4f" % snap.get("mean_literals_per_clause", 0.0),
-                "empty_clause_pct": "%.4f" % snap.get("empty_clause_pct", 0.0),
-                "slot_churn_pct": "%.4f" % snap.get("slot_churn_pct", 0.0),
+            name = r["name"]
+            g = ("pc" if name.startswith("pc") else
+                 "global_history" if name.startswith("gh") else
+                 "local_history" if name.startswith("lh") else
+                 "path" if name.startswith("b") else "other")
+            groups.setdefault(g, []).append(r)
+        groups["ALL"] = duty
+        for g, rs in groups.items():
+            n = len(rs)
+            rows_out.append({
+                "variant": variant, "trace": trace, "group": g, "n_inputs": n,
+                "duty_pre_pct_mean": "%.4f" % (sum(float(r["duty_pre_pct"]) for r in rs) / n),
+                "duty_post_pct_mean": "%.4f" % (sum(float(r["duty_post_pct"]) for r in rs) / n),
+                "ever_included_pct": "%.2f" % (100.0 * sum(1 for r in rs if r["ever_included"] == "1") / n),
+                "mean_literals_per_clause": "%.4f" % snap["mean_literals_per_clause"],
+                "empty_clause_pct": "%.4f" % snap["empty_clause_pct"],
+                "slot_churn_pct": "%.4f" % snap["slot_churn_pct"],
+                "length_churn_pct": "%.4f" % snap["length_churn_pct"],
             })
 
-    os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
-    fields = list(out_rows[0])
-    with open(a.out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=fields)
+    with open(out, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=FIELDS_ORDER)
         w.writeheader()
-        for r in out_rows:
+        for r in rows_out:
             w.writerow(r)
-    print("wrote %s (%d rows)" % (a.out, len(out_rows)))
+    print("wrote %s (%d rows)" % (out, len(rows_out)))
 
-    # compact markdown table: variant x group
-    print("\n| variant | trace | group | n | duty_pre% | duty_post% | ever% | lit/clause | empty_clause% | churn% |")
-    print("|---|---|---|---:|---:|---:|---:|---:|---:|---:|")
-    for r in out_rows:
-        print("| {variant} | {trace} | {group} | {n_inputs} | {duty_pre_pct_mean} | {duty_post_pct_mean} | "
-              "{ever_included_pct} | {mean_literals_per_clause} | {empty_clause_pct} | {slot_churn_pct} |".format(**r))
+    md = out.replace(".csv", ".md")
+    with open(md, "w") as fh:
+        fh.write("wrote %s (%d rows)\n\n" % (out, len(rows_out)))
+        fh.write("| variant | trace | group | n | duty_pre% | duty_post% | ever% | lit/clause | empty% | slot_churn% | length_churn% |\n")
+        fh.write("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+        for r in rows_out:
+            fh.write("| {variant} | {trace} | {group} | {n_inputs} | {duty_pre_pct_mean} | "
+                     "{duty_post_pct_mean} | {ever_included_pct} | {mean_literals_per_clause} | "
+                     "{empty_clause_pct} | {slot_churn_pct} | {length_churn_pct} |\n".format(**r))
+    print("wrote", md)
     return 0
 
 
