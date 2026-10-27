@@ -1,0 +1,193 @@
+name: full set - no_gh (57 inputs / 3648 B, 105 traces)
+
+# WHY THIS EXISTS
+# T6 already ran (run 40563918992, commit fcb956e): no_gh = 11.80723 against the
+# 11.78138 baseline, i.e. +0.22% (inside the frozen +3% bar), with tm_size 3648 B
+# instead of 5184 B.  So the arm is 29.6% smaller for essentially the same MPKI on
+# T6.  This run is the same question on the whole 105-trace set, where the decision
+# grade lives.
+#
+# Same plan/runner/gates as the 1-bit waves:
+#   fullsets_isoB.json (7 shards, 105 traces), scripts/run_fullset_arm.py,
+#   baseline not re-run (baseA_results/ALL.csv = 105-trace A baseline, TM 13.41542).
+#   gate    : pristine build + no_gh reproduces its ku smoke values and 3648 B
+#   collect : every trace must reproduce GShare / GShare wrong / instructions
+#             bit-for-bit against baseA (and I check TAGE separately afterwards).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'fullset_no_gh.json'
+      - '.github/workflows/fullset_no_gh.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fullset-no-gh
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: build + smoke gate (ku values frozen)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: gate 1 - pristine tree still reproduces the A baseline
+        run: |
+          set -euo pipefail
+          grep -qE '^#define NUM_INPUTS 81' tm.h
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g_int.txt
+          grep -qF "TM MPKI: 4.72575" g_int.txt || { echo "::error::pristine broken"; exit 1; }
+          grep -qF "TM right: 124142" g_int.txt || { echo "::error::pristine broken"; exit 1; }
+          echo "GATE 1 PASSED"
+
+      - name: gate 2 - no_gh reproduces its ku smoke values and its 3648 B size
+        run: |
+          set -euo pipefail
+          cp variants/no_gh/tm.h tm.h
+          make clean >/dev/null && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2a.txt
+          ./cbp -E 1000000 sample_traces/fp/sample_fp_trace.gz  | tee g2b.txt
+          fail=0
+          ck(){ if grep -qF "$3" "$1"; then echo "  OK   $2"; else echo "  FAIL $2"; fail=1; fi; }
+          ck g2a.txt int-size    "TM initialised with size 3648 bytes"
+          ck g2a.txt int-mpki    "TM MPKI: 4.69267"
+          ck g2a.txt int-right   "TM right: 124175"
+          ck g2a.txt int-gshare  "GShare MPKI: 3.83635"
+          ck g2a.txt int-instr   "Measured # of instructions: 997301"
+          ck g2b.txt fp-mpki     "TM MPKI: 3.05791"
+          ck g2b.txt fp-right    "TM right: 108189"
+          ck g2b.txt fp-gshare   "GShare MPKI: 13.5907"
+          ck g2b.txt fp-instr    "Measured # of instructions: 997741"
+          if [ "$fail" -ne 0 ]; then echo "::error::NO_GH SMOKE GATE FAILED"; exit 1; fi
+          echo "GATE 2 PASSED"
+
+  fullset:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | head -2
+          df -h . | tail -2
+      - name: install deps
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zlib1g-dev xz-utils
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("fullsets_isoB.json"))["${{ matrix.shard }}"]
+          print("category :", p["category"])
+          print("traces   :", len(p["traces"]))
+          print("gdrive   :", p["gdrive_id"], "~%.2f GB" % p["size_gb"])
+          print(", ".join(p["traces"]))
+          PY
+      - name: run full-set shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_fullset_arm.py \
+            --shard "${{ matrix.shard }}" \
+            --config no_gh \
+            --plan fullsets_isoB.json \
+            --parallel 4 \
+            --traces-dir traces \
+            --logs-dir fullset_no_gh/logs \
+            --out-dir fullset_no_gh
+      - name: upload results and raw stdout
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fsnogh-${{ matrix.shard }}
+          path: fullset_no_gh/
+          retention-days: 14
+          if-no-files-found: warn
+
+  collect:
+    name: collect + rebuild + determinism gate + commit
+    needs: fullset
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'fsnogh-*'
+          merge-multiple: true
+          path: collected
+
+      - name: assemble + pack raw stdout
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p fullset_no_gh/logs
+          cp collected/shard-*.csv fullset_no_gh/
+          ls -la fullset_no_gh/
+          python3 scripts/pack_logs.py --src collected --out fullset_no_gh/logs \
+            --expect 105 --expect-csv 'fullset_no_gh/shard-*.csv'
+          find fullset_no_gh/logs -name '*.log.gz' | wc -l
+          du -sh fullset_no_gh/logs
+
+      - name: rebuild CSV from raw stdout
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 scripts/rebuild_onebit_csv.py --results fullset_no_gh --plan fullset_no_gh.json
+          wc -l fullset_no_gh/ALL.csv
+
+      - name: summarise + determinism gate vs the 105-trace baseline
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python3 scripts/summarize_fullset_arm.py --arm no_gh --results fullset_no_gh \
+            --base baseA_results/ALL.csv --plan fullsets_isoB.json --expect-traces 105
+          cat fullset_no_gh/SUMMARY.md
+
+      - name: commit and push (skip ci)
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f fullset_no_gh/
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "full set no_gh: 57 inputs / 3648 B x 105 traces + raw stdout [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push"; exit 1
+
+      - name: verdict - red only when incomplete, data is already pushed
+        if: always()
+        run: |
+          set -uo pipefail
+          if [ ! -f fullset_no_gh/INVENTORY.txt ]; then
+            echo "::error::no INVENTORY"; exit 1
+          fi
+          cat fullset_no_gh/INVENTORY.txt
+          grep -q '^VERDICT: COMPLETE$' fullset_no_gh/INVENTORY.txt \
+            || { echo "::error::no_gh full set INCOMPLETE (data committed anyway)"; exit 1; }
+          echo "COLLECT COMPLETE"

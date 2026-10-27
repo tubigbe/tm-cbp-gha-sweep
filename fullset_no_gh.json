@@ -1,0 +1,11 @@
+{
+  "experiment": "2026-10-27 full set: no_gh - 57 inputs / 3648 B (global history physically removed)",
+  "test_set": "full set (fullsets_isoB.json: 7 category shards, 105 traces)",
+  "note": "T6 gate already passed: 11.80723 vs 11.78138 baseline = +0.22% (inside the +3% bar), tm_size 3648 B (-1536 B, -29.6%), structure gate 0/24. This run answers whether '29.6% smaller and no worse' holds on all 105 traces.",
+  "variants": [
+    {"name": "no_gh", "mode": 0, "why": "24 global-history input bits removed; 21 PC + 4 local + 32 path = 57 inputs; 32 clauses / T=6 / S=5 unchanged"}
+  ],
+  "shards": 7,
+  "jobs": 7,
+  "max_parallel": 7
+}
