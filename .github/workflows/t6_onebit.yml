@@ -186,9 +186,12 @@ jobs:
           rm -rf collected/gate_logs
           mkdir -p onebit_results
           find collected -name 'shard-*.csv' -exec cp {} onebit_results/ \;
-          cat onebit_results/shard-*.csv > onebit_results/ALL.csv
-          wc -l onebit_results/ALL.csv
-          python3 scripts/pack_logs.py --src collected --out onebit_results/logs --expect-csv 'onebit_results/shard-*.csv'
+          python3 scripts/pack_logs.py --src collected --out onebit_results/logs --expect 66
+          # the authoritative table is rebuilt from the committed raw stdout: cating
+          # shard CSVs is fragile if any shard CSV is stale (column shift)
+          python3 scripts/rebuild_onebit_csv.py --results onebit_results --plan t6_onebit.json
+          python3 scripts/summarize_onebit.py --results onebit_results/ALL.csv \
+            --plan t6_onebit.json --out onebit_results/SUMMARY.csv | tee onebit_results/SUMMARY.md
           n=$(find onebit_results/logs -name '*.log.gz' | wc -l)
           echo "packed logs: $n"
           du -sh onebit_results/logs
