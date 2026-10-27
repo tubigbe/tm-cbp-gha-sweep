@@ -127,6 +127,7 @@ class TMPredictor {
         // accuracy stats
         stats_t stats;
         uint64_t hyb_right, hyb_wrong;   /* hybrid output (TM_MODE != 0) */
+        uint64_t ovr_count, ovr_rescue, ovr_hurt;   /* override / rescue / hurt */
         // snapshot of state for current in-flight branch so we can update TM once it resolves
         std::unordered_map<uint64_t, snapshot_t> prediction_snapshots;
 

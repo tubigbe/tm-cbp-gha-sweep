@@ -183,6 +183,9 @@ void TMPredictor::init() {
     this->stats = {};
     this->hyb_right = 0;
     this->hyb_wrong = 0;
+    this->ovr_count = 0;
+    this->ovr_rescue = 0;
+    this->ovr_hurt = 0;
     this->prediction_snapshots.clear();
 }
 
@@ -252,16 +255,37 @@ void TMPredictor::resolved_update(uint64_t prediction_id, bool resolve_direction
     {
         const bool hybrid_pred = snapshot.onebit_pred ^ snapshot.tm_pred;
         if (hybrid_pred != resolve_direction) { hyb_wrong++; } else { hyb_right++; }
+        if (snapshot.tm_pred) {                      /* the hybrid flipped the 1-bit */
+            ovr_count++;
+            if (snapshot.onebit_pred != resolve_direction) { ovr_rescue++; }
+            else { ovr_hurt++; }
+        }
     }
 #elif TM_MODE == 2
     if (snapshot.tm_pred != resolve_direction) { stats.tm_wrong++; } else { stats.tm_right++; }
     if (snapshot.tm_pred != resolve_direction) { hyb_wrong++; } else { hyb_right++; }
+    if (snapshot.tm_pred != snapshot.onebit_pred) {   /* TM disagrees with the 1-bit */
+        ovr_count++;
+        if (snapshot.onebit_pred != resolve_direction && snapshot.tm_pred == resolve_direction) {
+            ovr_rescue++;
+        } else if (snapshot.onebit_pred == resolve_direction && snapshot.tm_pred != resolve_direction) {
+            ovr_hurt++;
+        }
+    }
 #elif TM_MODE == 3
     if (snapshot.tm_pred != resolve_direction) { stats.tm_wrong++; } else { stats.tm_right++; }
     {
         const bool gate_take_tm = (snapshot.vote >= TM_GATE_THETA) || (snapshot.vote <= -TM_GATE_THETA);
         const bool hybrid_pred = gate_take_tm ? snapshot.tm_pred : snapshot.onebit_pred;
         if (hybrid_pred != resolve_direction) { hyb_wrong++; } else { hyb_right++; }
+        if (gate_take_tm && (snapshot.tm_pred != snapshot.onebit_pred)) {
+            ovr_count++;
+            if (snapshot.onebit_pred != resolve_direction && hybrid_pred == resolve_direction) {
+                ovr_rescue++;
+            } else if (snapshot.onebit_pred == resolve_direction && hybrid_pred != resolve_direction) {
+                ovr_hurt++;
+            }
+        }
     }
 #else
     if (snapshot.tm_pred != resolve_direction) {
@@ -339,6 +363,11 @@ void TMPredictor::print_stats(uint64_t total_instrs) {
         std::cout << "HYB right: " << hyb_right << "\n";
         std::cout << "HYB accuracy: " << hyb_accuracy << "%\n";
         std::cout << "HYB MPKI: " << hyb_mpki << "\n";
+        std::cout << "override count: " << ovr_count << "\n";
+        std::cout << "rescue: " << ovr_rescue << "\n";
+        std::cout << "hurt: " << ovr_hurt << "\n";
+        std::cout << "HYB right: " << hyb_right << "\n";
+        std::cout << "HYB wrong: " << hyb_wrong << "\n";
         std::cout << "======================================\n";
     }
 #endif

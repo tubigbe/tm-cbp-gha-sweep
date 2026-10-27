@@ -79,6 +79,11 @@ def main():
             "TM_MPKI_mean": "%.5f" % mean("TM MPKI") if mean("TM MPKI") is not None else "",
             "onebit_MPKI_mean": "%.5f" % mean("1bit MPKI") if mean("1bit MPKI") is not None else "",
             "HYB_MPKI_mean": "%.5f" % mean("HYB MPKI") if mean("HYB MPKI") is not None else "",
+            "override_mean": "%.1f" % mean("override count") if mean("override count") is not None else "",
+            "rescue_mean": "%.1f" % mean("rescue") if mean("rescue") is not None else "",
+            "hurt_mean": "%.1f" % mean("hurt") if mean("hurt") is not None else "",
+            "net_rescue_minus_hurt": "%.1f" % (mean("rescue") - mean("hurt"))
+                if mean("rescue") is not None and mean("hurt") is not None else "",
             "GShare_MPKI_mean": "%.5f" % mean("GShare MPKI") if mean("GShare MPKI") is not None else "",
             "TAGE_MPKI_mean": "%.5f" % mean("TAGE MPKI") if mean("TAGE MPKI") is not None else "",
         })
@@ -93,12 +98,15 @@ def main():
             w.writerow(r)
     print("wrote %s" % a.out)
 
-    print("\n| arm | mode | T6 TM MPKI | 1-bit MPKI | hybrid MPKI | GShare | TAGE |")
-    print("|---|---:|---:|---:|---:|---:|---:|")
+    print("\n| arm | mode | T6 TM MPKI | 1-bit MPKI | hybrid MPKI | override | rescue | hurt | net | GShare | TAGE |")
+    print("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for r in out:
-        print("| %s | %s | %s | %s | %s | %s | %s |" % (
+        print("| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
             r["variant"], r["mode"], r["TM_MPKI_mean"], r["onebit_MPKI_mean"],
-            r["HYB_MPKI_mean"] or "-", r["GShare_MPKI_mean"], r["TAGE_MPKI_mean"]))
+            r["HYB_MPKI_mean"] or "-", r["override_mean"] or "-",
+            r["rescue_mean"] or "-", r["hurt_mean"] or "-",
+            r["net_rescue_minus_hurt"] or "-",
+            r["GShare_MPKI_mean"], r["TAGE_MPKI_mean"]))
     print("\npublished T6 anchors (TM baseline): %s" % anchors)
     if problems:
         for p in problems:

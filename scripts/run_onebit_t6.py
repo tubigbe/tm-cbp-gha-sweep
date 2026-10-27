@@ -24,8 +24,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 FIELDS = ["shard", "trace", "variant", "mode", "seconds", "rc",
           "TM MPKI", "TM accuracy", "TM right", "TM wrong",
-          "1bit MPKI", "1bit accuracy",
-          "HYB MPKI", "HYB accuracy",
+          "1bit MPKI", "1bit accuracy", "1bit wrong", "1bit right",
+          "HYB MPKI", "HYB accuracy", "HYB right", "HYB wrong",
+          "override count", "rescue", "hurt",
           "GShare MPKI", "GShare wrong", "TAGE MPKI",
           "instructions", "tm_size", "onebit_size"]
 
@@ -34,7 +35,8 @@ BASE_FILES = ["tm.h", "tm.cc", "tm_predictor.h", "tm_predictor.cc",
 
 PLAIN = ("TM MPKI", "TM accuracy", "TM right", "TM wrong",
          "1bit MPKI", "1bit accuracy", "1bit wrong", "1bit right",
-         "HYB MPKI", "HYB accuracy",
+         "HYB MPKI", "HYB accuracy", "HYB right", "HYB wrong",
+         "override count", "rescue", "hurt",
          "GShare MPKI", "GShare wrong")
 
 
