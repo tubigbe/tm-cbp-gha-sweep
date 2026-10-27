@@ -1,0 +1,8 @@
+arm: no_gh
+traces: 6
+per-trace logs: 6
+gate checks: 18
+gate mismatches: 0
+ref checks: 0
+ref mismatches: 0
+VERDICT: COMPLETE

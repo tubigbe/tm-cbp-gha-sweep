@@ -1,0 +1,7 @@
+shard,trace,variant,mode,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,1bit MPKI,1bit accuracy,1bit wrong,1bit right,HYB MPKI,HYB accuracy,HYB right,HYB wrong,override count,rescue,hurt,GShare MPKI,GShare wrong,TAGE MPKI,instructions,tm_size,onebit_size
+,compress_4_trace,no_gh,0,198.3,0,4.00141,96.4339%,3371730,124687,,,,,,,,,,,,7.23412,225421,1.9207,31160801,3648 bytes,
+,fp_4_trace,no_gh,0,211.3,0,4.32323,94.9599%,2443629,129697,,,,,,,,,,,,6.30546,189164,0.6261,30000052,3648 bytes,
+,infra_14_trace,no_gh,0,182.0,0,10.844,91.705%,5994289,542201,,,,,,,,,,,,14.4828,724143,6.0603,50000052,3648 bytes,
+,int_1_trace,no_gh,0,205.7,0,26.2714,85.1325%,4512984,788144,,,,,,,,,,,,44.9014,1347045,12.5008,30000052,3648 bytes,
+,media_3_trace,no_gh,0,132.2,0,7.40203,86.9037%,982365,148041,,,,,,,,,,,,11.6411,232822,1.8084,20000046,3648 bytes,
+,web_11_trace,no_gh,0,62.0,0,18.0013,87.0602%,1211322,180039,,,,,,,,,,,,27.9746,279786,7.6680,10001443,3648 bytes,
