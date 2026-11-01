@@ -214,7 +214,7 @@ def main():
         else:
             print("anchor %s on %s reproduced: %s" % (ref, trace, exp))
     # every run must have dropped its observer CSVs; the cross table only exists
-    # for builds whose NUM_INPUTS > 81 (the 81/25-input controls do not compile it)
+    # for builds with TM_HAS_OBP == 1 (the no-obp controls do not compile it)
     cross_map = plan.get("has_cross_table", {})
     for r in rows:
         p = os.path.join(a.stats_dir, "%s__%s" % (r["variant"], trace))

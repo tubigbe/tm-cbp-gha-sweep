@@ -41,7 +41,7 @@
 
 #include "tm_predictor.h"
 
-#if NUM_INPUTS > 81
+#if TM_HAS_OBP
 /* 2026-11-01 交叉表落盘：<TM_LITERAL_OUT>_cross_table.csv。
    一个指标一行，便于 GHA 那边直接收 CSV 不用解析 stdout。*/
 static void tm_write_cross_table(const uint64_t ct_inbit[2][2],
@@ -324,7 +324,7 @@ void TMPredictor::resolved_update(uint64_t prediction_id, bool resolve_direction
         stats.tm_right++;
     }
 
-#if NUM_INPUTS > 81
+#if TM_HAS_OBP
     /* 2026-11-01 交叉表。NUM_INPUTS == 81 的对照变体没有 obp 位，这段不编译。*/
     {
         const bool inbit_ok = (snapshot.tm_input_bit == resolve_direction);
@@ -392,7 +392,7 @@ void TMPredictor::print_stats(uint64_t total_instrs) {
     std::cout << "Measured # of instructions: " << total_instrs << "\n";
     std::cout << "===============================\n";
 
-#if NUM_INPUTS > 81
+#if TM_HAS_OBP
     {
         const uint64_t ic_r = ct_inbit[1][1], ic_w = ct_inbit[1][0];
         const uint64_t iw_r = ct_inbit[0][1], iw_w = ct_inbit[0][0];

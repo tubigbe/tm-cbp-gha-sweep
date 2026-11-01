@@ -36,7 +36,7 @@
     "exp1b_random_s1": true,
     "exp1b_random_s2": true,
     "exp2_oracle": true,
-    "exp3_lh5": true,
+    "exp3_lh5": false,
     "exp4_26in": true,
     "exp4_25in": false
   },
@@ -54,37 +54,61 @@
     "0": {
       "trace": "int_1_trace",
       "categories": {
-        "int": {"tarball": "int.tar.xz", "size_gb": 4.73, "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"}
+        "int": {
+          "tarball": "int.tar.xz",
+          "size_gb": 4.73,
+          "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"
+        }
       }
     },
     "1": {
       "trace": "fp_4_trace",
       "categories": {
-        "fp": {"tarball": "fp.tar.xz", "size_gb": 1.82, "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"}
+        "fp": {
+          "tarball": "fp.tar.xz",
+          "size_gb": 1.82,
+          "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"
+        }
       }
     },
     "2": {
       "trace": "web_11_trace",
       "categories": {
-        "web": {"tarball": "web.tar.xz", "size_gb": 1.89, "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"}
+        "web": {
+          "tarball": "web.tar.xz",
+          "size_gb": 1.89,
+          "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"
+        }
       }
     },
     "3": {
       "trace": "media_3_trace",
       "categories": {
-        "media": {"tarball": "media.tar.xz", "size_gb": 0.38, "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"}
+        "media": {
+          "tarball": "media.tar.xz",
+          "size_gb": 0.38,
+          "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"
+        }
       }
     },
     "4": {
       "trace": "compress_4_trace",
       "categories": {
-        "compress": {"tarball": "compress.tar.xz", "size_gb": 1.37, "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"}
+        "compress": {
+          "tarball": "compress.tar.xz",
+          "size_gb": 1.37,
+          "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"
+        }
       }
     },
     "5": {
       "trace": "infra_14_trace",
       "categories": {
-        "infra": {"tarball": "infra.tar.xz", "size_gb": 1.49, "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"}
+        "infra": {
+          "tarball": "infra.tar.xz",
+          "size_gb": 1.49,
+          "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"
+        }
       }
     }
   }
