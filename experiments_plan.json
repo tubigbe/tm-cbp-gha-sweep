@@ -1,0 +1,91 @@
+{
+  "experiment": "obp attribution: what does the 1-bit predictor's output actually feed the TM?",
+  "date": "2026-11-01",
+  "owner_doc": "pm/tm_cbp_sim/EXPERIMENT_PLAN_obp_20261101.md",
+  "variants": [
+    "exp0_baseline_obs",
+    "exp1a_obp",
+    "exp1b_random_s1",
+    "exp1b_random_s2",
+    "exp2_oracle",
+    "exp3_lh5",
+    "exp4_26in",
+    "exp4_25in"
+  ],
+  "expect_tm_mpki": {
+    "exp0_baseline_obs": {
+      "int_1_trace": 26.091,
+      "fp_4_trace": 4.19113,
+      "web_11_trace": 18.1577,
+      "media_3_trace": 7.44238,
+      "compress_4_trace": 3.99088,
+      "infra_14_trace": 10.8152
+    },
+    "exp1a_obp": {
+      "int_1_trace": 26.2599,
+      "fp_4_trace": 4.16503,
+      "web_11_trace": 11.4397,
+      "media_3_trace": 7.19303,
+      "compress_4_trace": 3.73643,
+      "infra_14_trace": 10.5971
+    }
+  },
+  "has_cross_table": {
+    "exp0_baseline_obs": false,
+    "exp1a_obp": true,
+    "exp1b_random_s1": true,
+    "exp1b_random_s2": true,
+    "exp2_oracle": true,
+    "exp3_lh5": true,
+    "exp4_26in": true,
+    "exp4_25in": false
+  },
+  "notes": {
+    "exp0_baseline_obs": "81 inputs, no obp. Instrumented control; must reproduce the published T6 baseline.",
+    "exp1a_obp": "82 inputs, real obp. DEVICE SELF-CHECK: must reproduce hybB exactly.",
+    "exp1b_random_s1": "82 inputs, independent xorshift bit (seed 1) instead of obp.",
+    "exp1b_random_s2": "same, seed 2. Two seeds so a single draw cannot fake a conclusion.",
+    "exp2_oracle": "82 inputs, unbounded unordered_map last-outcome (key = pc>>2) instead of obp.",
+    "exp3_lh5": "82 inputs, local history widened to 5 bits, no obp bit (same 5248 B as hybB).",
+    "exp4_26in": "26 inputs = PC + LH(4) + OBP; GH and path history removed. 1664 B.",
+    "exp4_25in": "25 inputs = PC + LH(4); GH, path and obp removed. 1600 B. Control for exp4_26in."
+  },
+  "shards": {
+    "0": {
+      "trace": "int_1_trace",
+      "categories": {
+        "int": {"tarball": "int.tar.xz", "size_gb": 4.73, "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"}
+      }
+    },
+    "1": {
+      "trace": "fp_4_trace",
+      "categories": {
+        "fp": {"tarball": "fp.tar.xz", "size_gb": 1.82, "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"}
+      }
+    },
+    "2": {
+      "trace": "web_11_trace",
+      "categories": {
+        "web": {"tarball": "web.tar.xz", "size_gb": 1.89, "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"}
+      }
+    },
+    "3": {
+      "trace": "media_3_trace",
+      "categories": {
+        "media": {"tarball": "media.tar.xz", "size_gb": 0.38, "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"}
+      }
+    },
+    "4": {
+      "trace": "compress_4_trace",
+      "categories": {
+        "compress": {"tarball": "compress.tar.xz", "size_gb": 1.37, "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"}
+      }
+    },
+    "5": {
+      "trace": "infra_14_trace",
+      "categories": {
+        "infra": {"tarball": "infra.tar.xz", "size_gb": 1.49, "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"}
+      }
+    }
+  }
+}

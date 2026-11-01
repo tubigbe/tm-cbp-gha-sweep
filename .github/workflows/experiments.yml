@@ -1,0 +1,357 @@
+name: obp attribution experiments (T6, GHA-first)
+
+# WHY THIS EXISTS
+# The 2026-11-01 question: the 1-bit per-PC predictor's answer, fed as TM input
+# bit 82, buys -10.3% on T6 / -12.86% on the full set.  What is that bit actually
+# telling the TM?  Four experiments, one workflow:
+#   exp0_baseline_obs  81 in, no obp          (instrumented control)
+#   exp1a_obp          82 in, real obp        (device self-check == hybB)
+#   exp1b_random_s1/2  82 in, random bit      (is the TM using it at all?)
+#   exp2_oracle        82 in, unbounded table (is 16 KB aliasing the bottleneck?)
+#   exp3_lh5           82 in, LH 5 bits       (capacity or information?)
+#   exp4_26in/25in     PC+LH(+OBP)            (are GH/path dead weight now?)
+#
+# A shard = ONE T6 trace x ALL variants, so each job downloads one category only.
+# The observer (TM_LITERAL_STATS) is switched on for every variant: it is inert
+# (gate 2 proves it) and it drops clause/duty/cross CSVs for every run.
+#
+# Trigger: push of the plan, the runner, a variant or this file (ku has no API
+# token, so a push is our only dispatch).  The results commit carries [skip ci].
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'experiments_plan.json'
+      - 'scripts/run_exp_shard.py'
+      - 'variants/exp*/**'
+      - '.github/workflows/experiments.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PLAN: experiments_plan.json
+  FILES: "tm.h tm.cc tm_predictor.h tm_predictor.cc cond_branch_predictor_interface.cc"
+
+jobs:
+  gate:
+    name: build + inertness + wiring gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: gate 1 - pristine tree reproduces the published baseline
+        run: |
+          set -uo pipefail
+          make clean >/dev/null 2>&1 || true
+          make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g1.txt
+          grep -qF "TM MPKI: 4.72575" g1.txt    || { echo "::error::pristine MPKI broken"; exit 1; }
+          grep -qF "TM accuracy: 96.3424%" g1.txt || { echo "::error::pristine accuracy broken"; exit 1; }
+          grep -qF "TM right: 124142" g1.txt     || { echo "::error::pristine right count broken"; exit 1; }
+          echo "GATE 1 OK: pristine == published baseline"
+
+      - name: gate 2 - exp0 (81 in, observer ON) must be behaviourally inert
+        run: |
+          set -uo pipefail
+          git checkout -- $FILES
+          for fn in $FILES; do cp "variants/exp0_baseline_obs/$fn" "$fn"; done
+          sed -i 's/^#define TM_LITERAL_STATS 0/#define TM_LITERAL_STATS 1/' tm.h
+          grep -q '^#define TM_LITERAL_STATS 1' tm.h || { echo "::error::could not enable observer"; exit 1; }
+          rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g2.txt
+          grep -qF "TM MPKI: 4.72575" g2.txt    || { echo "::error::observer changed behaviour"; exit 1; }
+          grep -qF "TM right: 124142" g2.txt     || { echo "::error::observer changed the right count"; exit 1; }
+          echo "GATE 2 OK: observer is inert"
+
+      - name: gate 3 - exp1a (82 in, real obp) must reproduce hybB
+        run: |
+          set -uo pipefail
+          git checkout -- $FILES
+          for fn in $FILES; do cp "variants/exp1a_obp/$fn" "$fn"; done
+          sed -i 's/^#define TM_LITERAL_STATS 0/#define TM_LITERAL_STATS 1/' tm.h
+          rm -f tm.o cbp && make -j"$(nproc)" >/dev/null
+          ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz | tee g3.txt
+          grep -qF "TM MPKI: 1.94224" g3.txt || { echo "::error::exp1a does not reproduce hybB"; exit 1; }
+          grep -qF "1bit MPKI: 2.21097" g3.txt || { echo "::error::1-bit observer changed"; exit 1; }
+          echo "GATE 3 OK: exp1a == hybB"
+
+      - name: gate 4 - observer really writes all three CSVs
+        run: |
+          set -uo pipefail
+          rm -rf gate_stats && mkdir -p gate_stats
+          TM_LITERAL_OUT=gate_stats/g ./cbp -E 1000000 sample_traces/int/sample_int_trace.gz > g4.txt
+          test -s gate_stats/g_clause_snapshots.csv || { echo "::error::snapshot CSV missing"; exit 1; }
+          test -s gate_stats/g_literal_duty.csv     || { echo "::error::duty CSV missing"; exit 1; }
+          test -s gate_stats/g_cross_table.csv      || { echo "::error::cross-table CSV missing"; exit 1; }
+          wc -l gate_stats/*.csv
+          cat gate_stats/g_cross_table.csv
+          echo "GATE 4 OK: all three observer CSVs written"
+
+      - name: gate 5 - the plan lists every variant directory
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import json, os, sys
+          plan = json.load(open(os.environ.get("PLAN", "experiments_plan.json")))
+          missing = [v for v in plan["variants"] if not os.path.isdir("variants/" + v)]
+          if missing:
+              print("::error::missing variant dirs: %s" % missing)
+              sys.exit(1)
+          print("GATE 5 OK: %d variants present" % len(plan["variants"]))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exp-gate
+          path: |
+            g1.txt
+            g2.txt
+            g3.txt
+            g4.txt
+            gate_stats/
+          retention-days: 14
+
+  exp:
+    name: shard ${{ matrix.shard }}
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: runner specs
+        run: |
+          grep -m1 'model name' /proc/cpuinfo
+          nproc
+          free -g | sed -n '1,2p'
+
+      - name: install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g-dev xz-utils
+
+      - name: show this shard's plan
+        run: |
+          python3 - <<'PY'
+          import json
+          p = json.load(open("experiments_plan.json"))["shards"]["${{ matrix.shard }}"]
+          print("trace:", p["trace"])
+          PY
+
+      - name: run shard
+        run: |
+          set -uo pipefail
+          python3 scripts/run_exp_shard.py \
+            --shard "${{ matrix.shard }}" \
+            --parallel 4 \
+            --plan experiments_plan.json \
+            --variants-dir variants \
+            --traces-dir traces \
+            --logs-dir logs \
+            --stats-dir exp_stats \
+            --out-dir exp_results
+
+      - name: upload results, observer CSVs and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exp-${{ matrix.shard }}
+          path: |
+            exp_results/
+            exp_stats/
+            logs/
+          retention-days: 14
+
+  collect:
+    name: collect + package + commit
+    needs: exp
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: 'exp-*'
+          merge-multiple: true
+          path: collected
+
+      - name: assemble, package, MANIFEST, SUMMARY
+        run: |
+          set -uo pipefail
+          python3 - <<'PY'
+          import csv, glob, gzip, hashlib, json, os, shutil
+
+          PLAN = "experiments_plan.json"
+          OUT = "exp_results"
+          os.makedirs(OUT, exist_ok=True)
+          plan = json.load(open(PLAN))
+          variants = plan["variants"]
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with open(path, "rb") as fh:
+                  for chunk in iter(lambda: fh.read(1 << 20), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          # 1) merge the shard CSVs
+          rows = []
+          for f in sorted(glob.glob("collected/exp_results/shard-*.csv")):
+              rows += list(csv.DictReader(open(f)))
+          cols = ["shard", "trace", "variant", "seconds", "rc",
+                  "TM MPKI", "TM accuracy", "TM right", "TM wrong",
+                  "GShare MPKI", "GShare accuracy", "TAGE MPKI", "instructions",
+                  "1bit MPKI", "1bit accuracy",
+                  "inbit_correct_acc", "inbit_wrong_acc",
+                  "obp_correct_acc", "obp_wrong_acc",
+                  "agree_pct", "disagree_tm_acc"]
+          with open(os.path.join(OUT, "ALL.csv"), "w", newline="") as fh:
+              w = csv.DictWriter(fh, fieldnames=cols, extrasaction="ignore")
+              w.writeheader()
+              for r in rows:
+                  w.writerow(r)
+          print("ALL.csv rows:", len(rows))
+
+          # 2) package the observer CSVs and raw stdout
+          stats_dir = os.path.join(OUT, "clause_stats")
+          logs_dir = os.path.join(OUT, "logs")
+          os.makedirs(stats_dir, exist_ok=True)
+          os.makedirs(logs_dir, exist_ok=True)
+          packed = []
+          for src_dir, dst_dir, pat in (("collected/exp_stats", stats_dir, "*.csv"),
+                                        ("collected/logs", logs_dir, "*.log")):
+              if not os.path.isdir(src_dir):
+                  print("!! missing", src_dir)
+                  continue
+              for p in sorted(glob.glob(os.path.join(src_dir, pat))):
+                  base = os.path.basename(p)
+                  data = open(p, "rb").read()
+                  dst = os.path.join(dst_dir, base + ".gz")
+                  with gzip.open(dst, "wb", compresslevel=9) as fh:
+                      fh.write(data)
+                  packed.append("%s  %d  %s" % (sha256(p), len(data), os.path.relpath(dst, OUT)))
+          print("packed files:", len(packed))
+
+          # 3) gate summary
+          problems = []
+          for r in rows:
+              if r.get("rc") != "0":
+                  problems.append("%s/%s rc=%s" % (r["variant"], r["trace"], r.get("rc")))
+              if not (r.get("TM MPKI") or "").strip():
+                  problems.append("%s/%s no MPKI" % (r["variant"], r["trace"]))
+          for ref in ("exp0_baseline_obs", "exp1a_obp"):
+              exp = (plan.get("expect_tm_mpki", {}).get(ref) or {})
+              for r in rows:
+                  if r["variant"] != ref:
+                      continue
+                  want = exp.get(r["trace"])
+                  if want is None:
+                      continue
+                  try:
+                      got = float(r["TM MPKI"])
+                  except Exception:
+                      got = None
+                  if got is None or abs(got - want) > 0.001:
+                      problems.append("anchor %s/%s: %s != %s"
+                                      % (ref, r["trace"], got, want))
+          expect_rows = len(variants) * 6
+          if len(rows) != expect_rows:
+              problems.append("row count %d != expected %d" % (len(rows), expect_rows))
+
+          # 4) the human-readable table: variant x trace, plus the mean
+          order = ["exp0_baseline_obs", "exp1a_obp", "exp1b_random_s1", "exp1b_random_s2",
+                   "exp2_oracle", "exp3_lh5", "exp4_26in", "exp4_25in"]
+          order = [v for v in order if v in variants] + [v for v in variants if v not in order]
+          traces = sorted({r["trace"] for r in rows})
+          by = {}
+          for r in rows:
+              by[(r["variant"], r["trace"])] = r
+          lines = ["# obp attribution (T6) -- MPKI table", "",
+                   "| variant | " + " | ".join(t.replace("_trace", "") for t in traces) + " | mean |",
+                   "|---|" + "---:|" * (len(traces) + 1)]
+          for v in order:
+              vals, cells = [], []
+              for t in traces:
+                  r = by.get((v, t))
+                  try:
+                      x = float(r["TM MPKI"])
+                      vals.append(x)
+                      cells.append("%.4f" % x)
+                  except Exception:
+                      cells.append("-")
+              mean = sum(vals) / len(vals) if vals else float("nan")
+              lines.append("| `%s` | %s | **%.4f** |" % (v, " | ".join(cells), mean))
+          lines += ["", "## cross table (TM accuracy inside each bucket)", "",
+                    "| variant | inbit correct | inbit wrong | obp correct | obp wrong | agree % | disagree: TM acc |",
+                    "|---|---:|---:|---:|---:|---:|---:|"]
+          for v in order:
+              def mean_of(k):
+                  xs = [float(by[(v, t)][k]) for t in traces
+                        if (v, t) in by and (by[(v, t)].get(k) or "").strip()]
+                  return "%.2f" % (sum(xs) / len(xs)) if xs else "-"
+              lines.append("| `%s` | %s | %s | %s | %s | %s | %s |" % (
+                  v, mean_of("inbit_correct_acc"), mean_of("inbit_wrong_acc"),
+                  mean_of("obp_correct_acc"), mean_of("obp_wrong_acc"),
+                  mean_of("agree_pct"), mean_of("disagree_tm_acc")))
+          open(os.path.join(OUT, "SUMMARY.md"), "w").write("\n".join(lines) + "\n")
+
+          open(os.path.join(OUT, "MANIFEST.txt"), "w").write(
+              "# obp attribution (T6)\n\n"
+              "- plan: %s\n- rows: %d (expected %d)\n- problems: %s\n"
+              % (PLAN, len(rows), expect_rows, problems or "none"))
+          open("PACKED-SHA256SUMS.txt", "w").write("\n".join(packed) + "\n")
+
+          print("\n".join(lines))
+          for p in problems:
+              print("::error::" + p)
+          if problems:
+              raise SystemExit(1)
+          PY
+
+      - name: commit and push (data first)
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "gha-sweep-bot"
+          git config user.email "gha-sweep-bot@users.noreply.github.com"
+          git add -f exp_results/ PACKED-SHA256SUMS.txt || true
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "obp attribution (T6): 8 variants x 6 traces + clause CSVs [skip ci]"
+          for i in 1 2 3 4 5; do
+            if git push; then echo "pushed (attempt $i)"; exit 0; fi
+            echo "push rejected, rebasing (attempt $i)"
+            git pull --rebase --autostash || true
+            sleep $((i * 5))
+          done
+          echo "::error::could not push results"; exit 1
+
+      - name: verdict
+        run: |
+          set -euo pipefail
+          test -s exp_results/ALL.csv
+          test -s exp_results/SUMMARY.md
+          n=$(find exp_results/clause_stats -name '*_clause_snapshots.csv.gz' | wc -l)
+          m=$(find exp_results/clause_stats -name '*_literal_duty.csv.gz' | wc -l)
+          c=$(find exp_results/clause_stats -name '*_cross_table.csv.gz' | wc -l)
+          l=$(find exp_results/logs -name '*.log.gz' | wc -l)
+          echo "snapshot CSVs: $n   duty: $m   cross: $c   logs: $l"
+          test "$n" -eq 48
+          test "$m" -eq 48
+          test "$l" -eq 48
+          echo "VERDICT: COMPLETE"
