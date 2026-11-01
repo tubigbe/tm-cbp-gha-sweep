@@ -10,7 +10,9 @@
     "exp2_oracle",
     "exp3_lh5",
     "exp4_26in",
-    "exp4_25in"
+    "exp4_25in",
+    "exp5_randgh",
+    "exp5_pcobp"
   ],
   "expect_tm_mpki": {
     "exp0_baseline_obs": {
@@ -38,7 +40,9 @@
     "exp2_oracle": true,
     "exp3_lh5": false,
     "exp4_26in": true,
-    "exp4_25in": false
+    "exp4_25in": false,
+    "exp5_randgh": true,
+    "exp5_pcobp": true
   },
   "notes": {
     "exp0_baseline_obs": "81 inputs, no obp. Instrumented control; must reproduce the published T6 baseline.",
@@ -48,7 +52,9 @@
     "exp2_oracle": "82 inputs, unbounded unordered_map last-outcome (key = pc>>2) instead of obp.",
     "exp3_lh5": "82 inputs, local history widened to 5 bits, no obp bit (same 5248 B as hybB).",
     "exp4_26in": "26 inputs = PC + LH(4) + OBP; GH and path history removed. 1664 B.",
-    "exp4_25in": "25 inputs = PC + LH(4); GH, path and obp removed. 1600 B. Control for exp4_26in."
+    "exp4_25in": "25 inputs = PC + LH(4); GH, path and obp removed. 1600 B. Control for exp4_26in.",
+    "exp5_randgh": "82 in, GH(24)+path(32) replaced by independent random bits. Separates 'GH/path information is harmful' from 'GH/path occupy slots'.",
+    "exp5_pcobp": "22 in = 21 PC bits + obp, no LH/GH/path. Decisive test of H1'': if PC+OBP matches 26in on web, obp really replaces LH."
   },
   "shards": {
     "0": {
