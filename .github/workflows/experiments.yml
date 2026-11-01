@@ -184,6 +184,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # full history: the push-retry loop rebases onto origin/main, and a
+          # shallow clone cannot rebase (this is what made run 41327484995 fail)
+          fetch-depth: 0
 
       - uses: actions/download-artifact@v4
         with:
