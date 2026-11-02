@@ -1,0 +1,2 @@
+shard,trace,variant,mode,seconds,rc,TM MPKI,TM accuracy,TM right,TM wrong,1bit MPKI,1bit accuracy,1bit wrong,1bit right,HYB MPKI,HYB accuracy,HYB right,HYB wrong,override count,rescue,hurt,GShare MPKI,GShare wrong,TAGE MPKI,instructions,tm_size,onebit_size
+0,int_1_trace,no_gh_1bit,2,221.0,0,26.0687,85.2473%,4519066,782062,71.2372,59.6856%,2137120,3164008,26.0687,85.2473%,4519066,782062,2006898,1680978,325920,44.9014,1347045,12.5008,30000052,3712 bytes,"131072 bits, 16 KB"
