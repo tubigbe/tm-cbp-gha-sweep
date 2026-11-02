@@ -1,0 +1,248 @@
+{
+  "experiment": "exp6 alias matrix: is obp just an unaliased LH table's bit0?",
+  "date": "2026-11-02",
+  "owner_doc": "pm/tm_cbp_sim/EXPERIMENT_PLAN_alias_20261102.md",
+  "variants": [
+    "exp6_lh4k_obp",
+    "exp6_lh4k_noobp",
+    "exp6_lh16k_obp",
+    "exp6_lh16k_noobp",
+    "exp6_lh128k_obp",
+    "exp6_lh128k_noobp",
+    "exp6_obp2k",
+    "exp6_obp8k",
+    "exp6_obp5_iso"
+  ],
+  "gate_only_variants": [
+    "exp6_ref26in"
+  ],
+  "expect_tm_mpki": {
+    "exp4_26in": {
+      "int_1_trace": 25.9648,
+      "fp_4_trace": 4.6268,
+      "web_11_trace": 11.0453,
+      "media_3_trace": 7.1955,
+      "compress_4_trace": 3.7228,
+      "infra_14_trace": 10.7106
+    },
+    "exp4_25in": {
+      "int_1_trace": 26.1153,
+      "fp_4_trace": 4.6313,
+      "web_11_trace": 17.7192,
+      "media_3_trace": 7.4207,
+      "compress_4_trace": 4.0384,
+      "infra_14_trace": 10.8546
+    }
+  },
+  "expect_smoke": {
+    "exp6_ref26in": {
+      "TM MPKI": "2.34934",
+      "TM right": "126512",
+      "TM wrong": "2343",
+      "1bit MPKI": "2.21097",
+      "TM size": "1664",
+      "1bit size": "131072 bits, 16 KB"
+    },
+    "exp4_26in": {
+      "TM MPKI": "2.34934",
+      "TM right": "126512",
+      "1bit MPKI": "2.21097"
+    }
+  },
+  "area_bytes": {
+    "exp6_lh4k_obp": {
+      "tm": 1664,
+      "lh": 2048,
+      "obp": 16384,
+      "total": 20096
+    },
+    "exp6_lh4k_noobp": {
+      "tm": 1600,
+      "lh": 2048,
+      "obp": 0,
+      "total": 3648
+    },
+    "exp6_lh16k_obp": {
+      "tm": 1664,
+      "lh": 8192,
+      "obp": 16384,
+      "total": 26240
+    },
+    "exp6_lh16k_noobp": {
+      "tm": 1600,
+      "lh": 8192,
+      "obp": 0,
+      "total": 9792
+    },
+    "exp6_lh128k_obp": {
+      "tm": 1664,
+      "lh": 65536,
+      "obp": 16384,
+      "total": 83584
+    },
+    "exp6_lh128k_noobp": {
+      "tm": 1600,
+      "lh": 65536,
+      "obp": 0,
+      "total": 67136
+    },
+    "exp6_obp2k": {
+      "tm": 1664,
+      "lh": 512,
+      "obp": 2048,
+      "total": 4224
+    },
+    "exp6_obp8k": {
+      "tm": 1664,
+      "lh": 512,
+      "obp": 8192,
+      "total": 10368
+    },
+    "exp6_obp5_iso": {
+      "tm": 1664,
+      "lh": 0,
+      "obp": 10240,
+      "total": 11904
+    }
+  },
+  "impl_bytes": {
+    "exp6_lh4k_obp": {
+      "tm": 1664,
+      "lh_arr": 4096,
+      "obp_arr": 16384,
+      "total": 22144
+    },
+    "exp6_lh4k_noobp": {
+      "tm": 1600,
+      "lh_arr": 4096,
+      "obp_arr": 0,
+      "total": 5696
+    },
+    "exp6_lh16k_obp": {
+      "tm": 1664,
+      "lh_arr": 16384,
+      "obp_arr": 16384,
+      "total": 34432
+    },
+    "exp6_lh16k_noobp": {
+      "tm": 1600,
+      "lh_arr": 16384,
+      "obp_arr": 0,
+      "total": 17984
+    },
+    "exp6_lh128k_obp": {
+      "tm": 1664,
+      "lh_arr": 131072,
+      "obp_arr": 16384,
+      "total": 149120
+    },
+    "exp6_lh128k_noobp": {
+      "tm": 1600,
+      "lh_arr": 131072,
+      "obp_arr": 0,
+      "total": 132672
+    },
+    "exp6_obp2k": {
+      "tm": 1664,
+      "lh_arr": 1024,
+      "obp_arr": 2048,
+      "total": 4736
+    },
+    "exp6_obp8k": {
+      "tm": 1664,
+      "lh_arr": 1024,
+      "obp_arr": 8192,
+      "total": 10880
+    },
+    "exp6_obp5_iso": {
+      "tm": 1664,
+      "lh_arr": 0,
+      "obp_arr": 16384,
+      "total": 18048
+    }
+  },
+  "has_cross_table": {
+    "exp6_lh4k_obp": true,
+    "exp6_lh4k_noobp": false,
+    "exp6_lh16k_obp": true,
+    "exp6_lh16k_noobp": false,
+    "exp6_lh128k_obp": true,
+    "exp6_lh128k_noobp": false,
+    "exp6_obp2k": true,
+    "exp6_obp8k": true,
+    "exp6_obp5_iso": true
+  },
+  "notes": {
+    "exp6_lh4k_obp": "B1: LH table 4096 entries (2 KB), obp 16 KB.",
+    "exp6_lh4k_noobp": "B1: LH table 4096 entries (2 KB), no obp. Pairs with lh4k_obp to give delta(4096). MUST differ from exp4_25in bit-for-bit.",
+    "exp6_lh16k_obp": "B1: LH table 16384 entries (8 KB), obp 16 KB.",
+    "exp6_lh16k_noobp": "B1: LH table 16384 entries (8 KB), no obp. Pairs with lh16k_obp to give delta(16384). MUST differ from lh4k_noobp.",
+    "exp6_lh128k_obp": "B1: LH table 131072 entries (64 KB), obp 16 KB. Completes the delta curve at the top end.",
+    "exp6_lh128k_noobp": "B1 DECISIVE: LH table 131072 entries (64 KB), no obp. Its bit0 IS the obp. delta(0) = this vs lh128k_obp. CRITERION 0: if this does not beat exp4_25in, aliasing is not the bottleneck and H4 dies.",
+    "exp6_obp2k": "B2 JUDGE: obp table 2 KB (2^14), LH 1024. If it keeps >=70% of obp's gain, capacity is saturated => H4 loses, H4e (1-literal PC identity) wins.",
+    "exp6_obp8k": "B2: obp table 8 KB (2^16), LH 1024.",
+    "exp6_obp5_iso": "A: 5-bit per-PC history, no LH, 2^14 entries => 10 KB. Area-matched against the 16 KB obp table: capacity vs width."
+  },
+  "shards": {
+    "0": {
+      "trace": "int_1_trace",
+      "categories": {
+        "int": {
+          "tarball": "int.tar.xz",
+          "size_gb": 4.73,
+          "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"
+        }
+      }
+    },
+    "1": {
+      "trace": "fp_4_trace",
+      "categories": {
+        "fp": {
+          "tarball": "fp.tar.xz",
+          "size_gb": 1.82,
+          "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"
+        }
+      }
+    },
+    "2": {
+      "trace": "web_11_trace",
+      "categories": {
+        "web": {
+          "tarball": "web.tar.xz",
+          "size_gb": 1.89,
+          "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"
+        }
+      }
+    },
+    "3": {
+      "trace": "media_3_trace",
+      "categories": {
+        "media": {
+          "tarball": "media.tar.xz",
+          "size_gb": 0.38,
+          "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"
+        }
+      }
+    },
+    "4": {
+      "trace": "compress_4_trace",
+      "categories": {
+        "compress": {
+          "tarball": "compress.tar.xz",
+          "size_gb": 1.37,
+          "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"
+        }
+      }
+    },
+    "5": {
+      "trace": "infra_14_trace",
+      "categories": {
+        "infra": {
+          "tarball": "infra.tar.xz",
+          "size_gb": 1.49,
+          "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"
+        }
+      }
+    }
+  }
+}
