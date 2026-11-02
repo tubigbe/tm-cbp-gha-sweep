@@ -1,0 +1,16 @@
+{
+  "experiment": "2026-11-02 T6: no_gh + 1-bit (58 inputs / 3712 B) - do the two effects stack?",
+  "test_set": "T6 (runlist_tune.txt)",
+  "arms_note": "no_gh tm.h (NUM_INPUTS 57, TM_G_HIST_BITS 0) + hybB's 1-bit predictor code; the 1-bit prediction is appended through wr_idx in assemble_input, so it lands at index NUM_INPUTS-1 = 57 and the contract is 21 PC + 0 gh + 4 local + 32 path + 1 onebit = 58. tm.cc byte-identical (d13a27d3...). Area 32*58*2 = 3712 B (-1472 B vs 5184, -28.4%).",
+  "variants": [
+    {"name": "no_gh_1bit", "mode": 2, "expect_tm": null, "why": "gh removed (57 inputs) + 1-bit prediction as the 58th input bit"}
+  ],
+  "shards": {
+    "0": {"trace": "int_1_trace", "categories": {"int": {"tarball": "int.tar.xz", "size_gb": 4.73, "gdrive_id": "1R9eJg5pUaE4FNq1k1Xv3DfnE93CzYROi"}}, "expect_baseline": 26.091, "est_shard_sec": 700},
+    "1": {"trace": "fp_4_trace", "categories": {"fp": {"tarball": "fp.tar.xz", "size_gb": 1.82, "gdrive_id": "1TA1n-6U2aoBUoPpCEGyberAKYIYhi3I3"}}, "expect_baseline": 4.19113, "est_shard_sec": 700},
+    "2": {"trace": "web_11_trace", "categories": {"web": {"tarball": "web.tar.xz", "size_gb": 1.89, "gdrive_id": "18P3ndXZKSwpxNVjoUB7TWUIq0PJfSljf"}}, "expect_baseline": 18.1577, "est_shard_sec": 700},
+    "3": {"trace": "media_3_trace", "categories": {"media": {"tarball": "media.tar.xz", "size_gb": 0.38, "gdrive_id": "1c0914RMqTpKwtKG2vU3fCgiaNXQ5xx6n"}}, "expect_baseline": 7.44238, "est_shard_sec": 700},
+    "4": {"trace": "compress_4_trace", "categories": {"compress": {"tarball": "compress.tar.xz", "size_gb": 1.37, "gdrive_id": "1YDfitnG4bRX2nOFh5X4o0QePAF8vZCg_"}}, "expect_baseline": 3.99088, "est_shard_sec": 700},
+    "5": {"trace": "infra_14_trace", "categories": {"infra": {"tarball": "infra.tar.xz", "size_gb": 1.49, "gdrive_id": "15lDyv-PH_bfnPXweIHwS97ZATX_T94hj"}}, "expect_baseline": 10.8152, "est_shard_sec": 700}
+  }
+}
