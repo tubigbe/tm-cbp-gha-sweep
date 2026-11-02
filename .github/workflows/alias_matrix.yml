@@ -231,7 +231,7 @@ jobs:
           python3 scripts/run_exp_shard.py \
             --shard "${{ matrix.shard }}" \
             --parallel 4 \
-            --plan experiments_plan.json \
+            --plan experiments_alias_plan.json \
             --variants-dir variants \
             --traces-dir traces \
             --logs-dir logs \
