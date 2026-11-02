@@ -24,8 +24,13 @@ on:
     paths:
       - 'experiments_plan.json'
       - 'scripts/run_exp_shard.py'
-      - 'variants/exp*/**'
-      - '.github/workflows/experiments.yml'
+      # explicit list: exp6_* must NOT wake this workflow up
+      - 'variants/exp0_*/**'
+      - 'variants/exp1*/**'
+      - 'variants/exp2_*/**'
+      - 'variants/exp3_*/**'
+      - 'variants/exp4_*/**'
+      - 'variants/exp5_*/**'
   workflow_dispatch:
 
 permissions:

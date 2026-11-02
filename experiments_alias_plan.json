@@ -11,7 +11,8 @@
     "exp6_lh128k_noobp",
     "exp6_obp2k",
     "exp6_obp8k",
-    "exp6_obp5_iso"
+    "exp6_obp5_iso",
+    "exp6_obp_zero"
   ],
   "gate_only_variants": [
     "exp6_ref26in"
@@ -103,6 +104,12 @@
       "lh": 0,
       "obp": 10240,
       "total": 11904
+    },
+    "exp6_obp_zero": {
+      "tm": 1664,
+      "lh": 512,
+      "obp": 16384,
+      "total": 18560
     }
   },
   "impl_bytes": {
@@ -159,6 +166,12 @@
       "lh_arr": 0,
       "obp_arr": 16384,
       "total": 18048
+    },
+    "exp6_obp_zero": {
+      "tm": 1664,
+      "lh_arr": 1024,
+      "obp_arr": 16384,
+      "total": 19072
     }
   },
   "has_cross_table": {
@@ -170,7 +183,8 @@
     "exp6_lh128k_noobp": false,
     "exp6_obp2k": true,
     "exp6_obp8k": true,
-    "exp6_obp5_iso": true
+    "exp6_obp5_iso": true,
+    "exp6_obp_zero": true
   },
   "notes": {
     "exp6_lh4k_obp": "B1: LH table 4096 entries (2 KB), obp 16 KB.",
@@ -181,7 +195,8 @@
     "exp6_lh128k_noobp": "B1 DECISIVE: LH table 131072 entries (64 KB), no obp. Its bit0 IS the obp. delta(0) = this vs lh128k_obp. CRITERION 0: if this does not beat exp4_25in, aliasing is not the bottleneck and H4 dies.",
     "exp6_obp2k": "B2 JUDGE: obp table 2 KB (2^14), LH 1024. If it keeps >=70% of obp's gain, capacity is saturated => H4 loses, H4e (1-literal PC identity) wins.",
     "exp6_obp8k": "B2: obp table 8 KB (2^16), LH 1024.",
-    "exp6_obp5_iso": "A: 5-bit per-PC history, no LH, 2^14 entries => 10 KB. Area-matched against the 16 KB obp table: capacity vs width."
+    "exp6_obp5_iso": "A: 5-bit per-PC history, no LH, 2^14 entries => 10 KB. Area-matched against the 16 KB obp table: capacity vs width.",
+    "exp6_obp_zero": "SLOT CONTROL: 26 inputs, obp slot exists, but the bit handed to the TM is hard-wired to 0. Keeps the rand_01() sequence identical to exp4_26in, removes all information. Gives d_slot and d_info."
   },
   "shards": {
     "0": {
