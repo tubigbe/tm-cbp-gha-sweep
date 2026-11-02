@@ -1,0 +1,11 @@
+{
+  "experiment": "2026-11-02 full set: no_gh + 1-bit (58 inputs / 3712 B)",
+  "test_set": "full set (fullsets_isoB.json: 7 category shards, 105 traces)",
+  "note": "T6 already passed the frozen bar: 10.53937 vs 11.781382 = -10.54% (line was <= 10.6), and 0.24% better than hybB while the TM is 28.4% smaller. This run asks whether that holds on all 105 traces.",
+  "variants": [
+    {"name": "no_gh_1bit", "mode": 2, "why": "no_gh (57 inputs) + 1-bit prediction as the 58th input bit; 32*58*2 = 3712 B"}
+  ],
+  "shards": 7,
+  "jobs": 7,
+  "max_parallel": 7
+}
